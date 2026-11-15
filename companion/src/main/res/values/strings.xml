@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name" translatable="false">KeyHack Online</string>
+  <string name="companion_title">KeyHack Online</string>
+  <string name="companion_body">This optional companion will provide GIF search for KeyHack. It never sees what you type: KeyHack sends it only the words you type into the GIF search box.</string>
+  <string name="companion_status">GIF search is not available yet.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="companion_title">KeyHack Online</string>
+  <string name="companion_body">Este complemento opcional vai oferecer busca de GIFs para o KeyHack. Ele nunca vê o que você digita: o KeyHack envia a ele apenas as palavras digitadas na caixa de busca de GIFs.</string>
+  <string name="companion_status">A busca de GIFs ainda não está disponível.</string>
+</resources>

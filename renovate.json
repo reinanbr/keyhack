@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":dependencyDashboard"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "Anything that parses untrusted input gets updated first (libwebp joins in M5).",
+      "matchPackageNames": ["/webp/", "/gifdecoder/", "/coil/"],
+      "prPriority": 10,
+      "labels": ["dependencies", "security-relevant"]
+    },
+    {
+      "description": "Keep Kotlin, the Compose compiler plugin and the KGP-based detekt plugin together.",
+      "matchPackageNames": ["/^org\\.jetbrains\\.kotlin/"],
+      "groupName": "kotlin"
+    },
+    {
+      "description": "Dependency verification metadata must be regenerated with each update.",
+      "matchManagers": ["gradle"],
+      "prBodyNotes": ["Regenerate `gradle/verification-metadata.xml`: `./gradlew --write-verification-metadata pgp,sha256 --export-keys check assembleRelease`, then review the diff."]
+    }
+  ]
+}

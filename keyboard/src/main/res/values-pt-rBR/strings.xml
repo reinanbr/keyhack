@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="keyhack_a11y_shift">Shift</string>
+  <string name="keyhack_a11y_shift_on">Shift, ativado</string>
+  <string name="keyhack_a11y_caps_lock">Caps lock, ativado</string>
+  <string name="keyhack_a11y_delete">Apagar</string>
+  <string name="keyhack_a11y_enter">Enter</string>
+  <string name="keyhack_a11y_space">Espaço</string>
+</resources>

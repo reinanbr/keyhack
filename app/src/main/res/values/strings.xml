@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name" translatable="false">KeyHack</string>
+  <string name="onboarding_title">Set up KeyHack</string>
+  <string name="onboarding_privacy">KeyHack has no internet access. What you type stays on this device.</string>
+  <string name="step_enable_title">1. Enable KeyHack</string>
+  <string name="step_enable_body">Turn on KeyHack in your keyboard settings. Android warns that any keyboard can collect what you type; KeyHack cannot send it anywhere.</string>
+  <string name="step_enable_action">Open keyboard settings</string>
+  <string name="step_select_title">2. Select KeyHack</string>
+  <string name="step_select_body">Make KeyHack your current keyboard.</string>
+  <string name="step_select_action">Choose keyboard</string>
+  <string name="step_try_title">3. Try it</string>
+  <string name="step_try_hint">Type here</string>
+  <string name="step_done">Done</string>
+</resources>

@@ -1,0 +1,22 @@
+KeyHack
+Copyright 2026 The KeyHack Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party code
+================
+KeyHack may reuse code from the following Apache-2.0 projects. Any file that
+does so keeps its original copyright header, and the origin is recorded here.
+
+  - AOSP LatinIME            https://android.googlesource.com/platform/packages/inputmethods/LatinIME
+                             Copyright The Android Open Source Project
+  - Hacker's Keyboard        https://github.com/klausw/hackerskeyboard
+                             Copyright Klaus Weidner and contributors
+  - FlorisBoard              https://github.com/florisboard/florisboard
+                             Copyright The FlorisBoard Contributors
+
+Files derived from these projects:
+  (none yet)
+
+GPL-licensed keyboards (HeliBoard, GPL OpenBoard forks, AnySoftKeyboard) must
+not be copied into this repository.

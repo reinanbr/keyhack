@@ -1,0 +1,34 @@
+# Built on detekt's default config (buildUponDefaultConfig = true); only
+# overrides live here.
+complexity:
+  LongParameterList:
+    allowedFunctionParameters: 8
+    allowedConstructorParameters: 10
+  TooManyFunctions:
+    allowedFunctionsPerFile: 20
+    allowedFunctionsPerClass: 20
+    ignorePrivate: true
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/test/**', '**/androidTest/**']
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - reason: 'Typed text must never be printed.'
+        value: 'kotlin.io.println'
+      - reason: 'Typed text must never be printed.'
+        value: 'kotlin.io.print'
+
+# `!!` is flagged; a reviewed @Suppress("UnsafeCallOnNullableType") must carry
+# a justification comment.
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true

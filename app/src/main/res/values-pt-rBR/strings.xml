@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="onboarding_title">Configurar o KeyHack</string>
+  <string name="onboarding_privacy">O KeyHack não tem acesso à internet. O que você digita fica neste aparelho.</string>
+  <string name="step_enable_title">1. Ativar o KeyHack</string>
+  <string name="step_enable_body">Ative o KeyHack nas configurações de teclado. O Android avisa que qualquer teclado pode coletar o que você digita; o KeyHack não consegue enviar isso para lugar nenhum.</string>
+  <string name="step_enable_action">Abrir configurações de teclado</string>
+  <string name="step_select_title">2. Selecionar o KeyHack</string>
+  <string name="step_select_body">Defina o KeyHack como teclado atual.</string>
+  <string name="step_select_action">Escolher teclado</string>
+  <string name="step_try_title">3. Experimente</string>
+  <string name="step_try_hint">Digite aqui</string>
+  <string name="step_done">Pronto</string>
+</resources>

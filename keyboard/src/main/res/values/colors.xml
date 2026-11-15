@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="keyhack_kb_background">#FFE8EAED</color>
+  <color name="keyhack_kb_key">#FFFFFFFF</color>
+  <color name="keyhack_kb_function_key">#FFC9CDD3</color>
+  <color name="keyhack_kb_pressed_key">#FFAEB4BC</color>
+  <color name="keyhack_kb_label">#FF202124</color>
+  <color name="keyhack_kb_accent">#FF1A73E8</color>
+</resources>

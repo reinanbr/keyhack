@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="keyhack_ime_name" translatable="false">KeyHack</string>
+  <string name="keyhack_subtype_en_us">English (US)</string>
+  <string name="keyhack_subtype_pt_br">Portuguese (Brazil)</string>
+  <string name="keyhack_enter_go">Go</string>
+  <string name="keyhack_enter_search">Search</string>
+  <string name="keyhack_enter_send">Send</string>
+  <string name="keyhack_enter_next">Next</string>
+  <string name="keyhack_enter_previous">Prev</string>
+  <string name="keyhack_enter_done">Done</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="keyhack_subtype_en_us">Inglês (EUA)</string>
+  <string name="keyhack_subtype_pt_br">Português (Brasil)</string>
+  <string name="keyhack_enter_go">Ir</string>
+  <string name="keyhack_enter_search">Buscar</string>
+  <string name="keyhack_enter_send">Enviar</string>
+  <string name="keyhack_enter_next">Próx.</string>
+  <string name="keyhack_enter_previous">Ant.</string>
+  <string name="keyhack_enter_done">OK</string>
+</resources>
