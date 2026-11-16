@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":ime"))
     implementation(project(":core"))
     implementation(project(":data"))
+    implementation(project(":stickers"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 }

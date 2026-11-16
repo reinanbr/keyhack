@@ -2,7 +2,6 @@ package com.reinanbr.keyhack.media
 
 import com.reinanbr.keyhack.core.Json
 import com.reinanbr.keyhack.core.array
-import com.reinanbr.keyhack.core.jsonArray
 import com.reinanbr.keyhack.core.jsonObject
 import com.reinanbr.keyhack.core.number
 import com.reinanbr.keyhack.core.obj
@@ -39,7 +38,6 @@ interface GifProvider {
             if (apiKey.isBlank()) return null
             return when (id) {
                 GiphyProvider.ID -> GiphyProvider(apiKey.trim())
-                TenorProvider.ID -> TenorProvider(apiKey.trim())
                 else -> null
             }
         }
@@ -48,7 +46,7 @@ interface GifProvider {
 
 private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
-// Giphy sends sizes as strings ("200"), Tenor as numbers.
+// Giphy sends sizes as strings ("200"); accept numbers too.
 private fun Map<String, Any?>.int(key: String): Int = number(key)?.toInt() ?: string(key)?.toIntOrNull() ?: 0
 
 class GiphyProvider(private val apiKey: String) : GifProvider {
@@ -87,41 +85,5 @@ class GiphyProvider(private val apiKey: String) : GifProvider {
 
     companion object {
         const val ID = "giphy"
-    }
-}
-
-class TenorProvider(private val apiKey: String) : GifProvider {
-    override val id = ID
-    override val allowedHosts = setOf("tenor.googleapis.com", "media.tenor.com", "tenor.com")
-
-    override fun searchUrl(query: String, cursor: String?, limit: Int, locale: String) =
-        "https://tenor.googleapis.com/v2/search?key=${enc(apiKey)}&client_key=keyhack&q=${enc(query)}" +
-            "&limit=$limit&media_filter=gif,tinygif&contentfilter=medium&locale=${enc(locale)}" +
-            (cursor?.let { "&pos=${enc(it)}" } ?: "")
-
-    override fun trendingUrl(cursor: String?, limit: Int, locale: String) =
-        "https://tenor.googleapis.com/v2/featured?key=${enc(apiKey)}&client_key=keyhack&limit=$limit" +
-            "&media_filter=gif,tinygif&contentfilter=medium&locale=${enc(locale)}" +
-            (cursor?.let { "&pos=${enc(it)}" } ?: "")
-
-    override fun parse(body: String): GifPage {
-        val root = Json.parse(body).jsonObject() ?: throw IllegalArgumentException("bad response")
-        val items =
-            root.array("results").orEmpty().mapNotNull { e ->
-                val o = e.jsonObject() ?: return@mapNotNull null
-                val formats = o.obj("media_formats") ?: return@mapNotNull null
-                fun media(name: String): GifMedia? = formats.obj(name)?.let { m ->
-                    val dims = m["dims"].jsonArray().orEmpty().map { (it as? Number)?.toInt() ?: 0 }
-                    m.string("url")?.let { GifMedia(it, dims.getOrElse(0) { 0 }, dims.getOrElse(1) { 0 }) }
-                }
-                val preview = media("tinygif") ?: media("gif") ?: return@mapNotNull null
-                val full = media("gif") ?: preview
-                GifItem(o.string("id").orEmpty(), o.string("content_description").orEmpty(), preview, full)
-            }
-        return GifPage(items, root.string("next")?.takeIf { it.isNotEmpty() && it != "0" })
-    }
-
-    companion object {
-        const val ID = "tenor"
     }
 }

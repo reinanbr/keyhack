@@ -55,7 +55,7 @@ class KeyHackSettings(context: Context) {
 
     // GIFs
     val gifEnabled: Boolean get() = bool(GIF_ENABLED, true)
-    val gifProvider: String get() = str(GIF_PROVIDER, "giphy")
+    val gifProvider: String get() = str(GIF_PROVIDER, "giphy").takeIf { it in GIF_PROVIDERS } ?: "giphy"
     fun gifKey(provider: String): String = str(GIF_KEY_PREFIX + provider, "")
 
     fun edit(block: SharedPreferences.Editor.() -> Unit) = prefs.edit().apply(block).apply()
@@ -95,6 +95,8 @@ class KeyHackSettings(context: Context) {
                 "com.foxdebug.acode, com.foxdebug.acodefree, jackpal.androidterm, com.offsec.nhterm"
         val LAYOUTS = listOf("qwerty", "abnt2", "azerty", "dvorak", "colemak", "pc")
         val SUPPORTED_LANGUAGES = listOf("en", "pt")
-        val GIF_PROVIDERS = listOf("giphy", "tenor")
+
+        // Tenor was removed: Google shut its API down on 2026-06-30.
+        val GIF_PROVIDERS = listOf("giphy")
     }
 }

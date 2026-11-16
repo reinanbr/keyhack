@@ -148,6 +148,6 @@ class GifRepository(context: Context) {
         private const val MAX_RECENTS = 30
         private const val HASH_BYTES = 12
         private const val KEY_RECENTS = "recents"
-        private val ALL_HOSTS = GiphyProvider("").allowedHosts + TenorProvider("").allowedHosts
+        private val ALL_HOSTS = GiphyProvider("").allowedHosts
     }
 }

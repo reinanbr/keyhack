@@ -26,7 +26,8 @@ learning that stores word counts only, and a single, auditable network use
   [`layouts/README.md`](layouts/README.md)); English and Brazilian Portuguese
   dictionaries with autocorrect (undo with backspace), completions and
   next-word prediction; emoji with categories, recents, skin tones and
-  EN/PT search; kaomoji; GIF search with your own Giphy or Tenor API key.
+  EN/PT search; kaomoji; GIF search (results update as you type) with your own Giphy API key;
+  stickers: import your images or send any emoji as a WhatsApp sticker.
 - **Dev tools:** case conversions (camelCase, snake_case…), Base64, URL and
   HTML escaping, JSON pretty/minify, MD5/SHA hashes, UUID v4/v7, timestamps.
 - **Privacy controls:** incognito mode; nothing learned or suggested in
@@ -60,7 +61,7 @@ aapt2 dump permissions app-release.apk
 **Assets:** everything you type (passwords included), clipboard contents,
 learned vocabulary, your sticker library, the GIF provider API key.
 
-The GIF provider (Giphy or Tenor) sees your GIF search terms, your API key and
+The GIF provider (Giphy) sees your GIF search terms, your API key and
 your IP address.
 
 | # | Adversary or risk | Main mitigations |
@@ -134,8 +135,8 @@ the diff:
 | M2 | PC mode: full layout, sticky modifiers, dev row, per-app PC mode | ✅ |
 | M3 | Dictionaries, autocorrect, prediction, count-only learning, incognito | ✅ |
 | M4 | Emoji ✅, opt-in encrypted clipboard history | partial |
-| M5 | Stickers, GIF→animated WebP, WhatsApp export | |
-| M6 | GIF search (Giphy/Tenor, BYOK), commitContent | ✅ |
+| M5 | Stickers: import ✅, emoji stickers ✅, commitContent to WhatsApp ✅; GIF→animated WebP, WhatsApp sticker packs | partial |
+| M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets, command palette | partial |
 | M8 | Glide typing | |
 | M9 | Floating/one-handed modes, theme editor, backup export, `offline` flavor without network, F-Droid | |

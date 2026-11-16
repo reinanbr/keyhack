@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":emoji"))
     implementation(project(":media"))
     implementation(project(":commit"))
+    implementation(project(":stickers"))
     implementation(project(":devtools"))
     implementation(project(":data"))
     implementation(project(":theme"))

@@ -46,6 +46,19 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
     private var colors: KeyboardColors? = null
     private val glyphPaint = Paint()
 
+    // Declared before init: init reads them (property initializers run in order).
+    private val tabIcons =
+        listOf(
+            TAB_RECENT to "🕘", "smileys" to "😀", "people" to "👋", "nature" to "🐻", "food" to "🍔",
+            "travel" to "🚗", "activities" to "⚽", "objects" to "💡", "symbols" to "🔣", "flags" to "🏁",
+            TAB_KAOMOJI to "ツ", TAB_TEXT_SYMBOLS to "∑",
+        )
+
+    private var entries: List<String> = emptyList()
+    private var emojiEntries: List<Emoji?> = emptyList()
+
+    private val glyphCache = HashMap<String, Boolean>()
+
     init {
         orientation = VERTICAL
         addView(tabs, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
@@ -88,13 +101,6 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         adapter.notifyDataSetChanged()
     }
 
-    private val tabIcons =
-        listOf(
-            TAB_RECENT to "🕘", "smileys" to "😀", "people" to "👋", "nature" to "🐻", "food" to "🍔",
-            "travel" to "🚗", "activities" to "⚽", "objects" to "💡", "symbols" to "🔣", "flags" to "🏁",
-            TAB_KAOMOJI to "ツ", TAB_TEXT_SYMBOLS to "∑",
-        )
-
     private fun showTabs() {
         tabs.show(tabIcons.map { (id, icon) -> StripView.Item(id, icon, accent = id == tab) })
     }
@@ -119,9 +125,6 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         grid.setSelection(0)
     }
 
-    private var entries: List<String> = emptyList()
-    private var emojiEntries: List<Emoji?> = emptyList()
-
     fun refresh() {
         val d = data
         when (tab) {
@@ -140,8 +143,6 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
             )
         }
     }
-
-    private val glyphCache = HashMap<String, Boolean>()
 
     /** Hides emoji the system font cannot draw (newer than this Android version). */
     private fun renders(e: Emoji): Boolean = glyphCache.getOrPut(e.value) { glyphPaint.hasGlyph(e.value) }

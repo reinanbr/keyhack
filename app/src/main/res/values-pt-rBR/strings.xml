@@ -16,6 +16,14 @@
   <string name="section_typing">Digitação e sugestões</string>
   <string name="section_pc">Modo PC / Hacker</string>
   <string name="section_gif">GIFs</string>
+  <string name="section_stickers">Figurinhas</string>
+  <string name="stickers_body">Importe suas imagens; elas viram figurinhas no formato do WhatsApp (WebP 512×512). Qualquer emoji também pode ser enviado como figurinha pelo botão 🖼 do teclado. As imagens ficam só neste aparelho.</string>
+  <string name="stickers_count">%1$d figurinhas</string>
+  <string name="stickers_import">Importar imagens</string>
+  <string name="stickers_delete_all">Apagar todas</string>
+  <string name="stickers_importing">Criando figurinhas…</string>
+  <string name="stickers_imported">%1$d figurinhas adicionadas</string>
+  <string name="stickers_imported_some_failed">%1$d figurinhas adicionadas, %2$d imagens não puderam ser lidas</string>
   <string name="section_privacy">Privacidade</string>
 
   <string name="pref_layout">Layout das letras</string>
@@ -54,9 +62,8 @@
 
   <string name="pref_gif_enabled">Ativar GIFs</string>
   <string name="pref_gif_enabled_summary">Desligado = o KeyHack nunca usa a rede</string>
-  <string name="pref_gif_provider">Provedor</string>
   <string name="pref_gif_key">Sua chave de API</string>
-  <string name="pref_gif_key_help">Os GIFs usam sua própria chave de API gratuita. Crie uma em developers.giphy.com (Giphy) ou console.cloud.google.com, Tenor API (Tenor). Ela fica salva só neste aparelho.</string>
+  <string name="pref_gif_key_help">Os GIFs usam a sua própria chave da API do Giphy. Uma chave de teste gratuita (com limite de buscas por hora) sai em developers.giphy.com; chaves de produção podem ser pagas. Ela fica guardada só neste aparelho.</string>
   <string name="pref_gif_privacy">Só o que você digita na busca de GIFs é enviado, por HTTPS, ao provedor escolhido. O provedor também vê sua chave de API e seu endereço IP.</string>
   <string name="show">Mostrar</string>
   <string name="hide">Ocultar</string>

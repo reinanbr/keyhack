@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
   <cache-path name="gif" path="gif/" />
+  <!-- Stickers (:stickers): the user's imported library and emoji stickers. -->
+  <files-path name="stickers" path="stickers/" />
+  <cache-path name="emoji_stickers" path="stickers/" />
 </paths>

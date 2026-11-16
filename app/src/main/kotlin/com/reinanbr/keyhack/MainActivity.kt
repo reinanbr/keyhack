@@ -2,6 +2,7 @@ package com.reinanbr.keyhack
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -10,6 +11,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +60,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.reinanbr.keyhack.data.KeyHackSettings
+import com.reinanbr.keyhack.stickers.StickerStore
 import java.io.File
 import kotlin.math.roundToInt
 import com.reinanbr.keyhack.data.KeyHackSettings.Companion as K
@@ -64,16 +68,67 @@ import com.reinanbr.keyhack.data.KeyHackSettings.Companion as K
 /** Launcher activity: setup steps, then every KeyHack setting. */
 class MainActivity : ComponentActivity() {
     private var status by mutableStateOf(ImeStatus(enabled = false, selected = false))
+    private val stickers by lazy { StickerStore(this) }
+    private var stickerCount by mutableStateOf(0)
+
+    // The system photo picker: no storage permission, the user picks each image.
+    private val pickImages =
+        registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_STICKER_IMPORT)) { uris ->
+            if (uris.isNotEmpty()) importStickers(uris)
+        }
+
+    private fun openStickerPicker() {
+        pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
+    private fun importStickers(uris: List<Uri>) {
+        Toast.makeText(this, R.string.stickers_importing, Toast.LENGTH_SHORT).show()
+        Thread({
+            val ok = uris.count { stickers.import(it).isSuccess }
+            runOnUiThread {
+                stickerCount = stickers.list().size
+                val failed = uris.size - ok
+                val text =
+                    if (failed == 0) {
+                        getString(R.string.stickers_imported, ok)
+                    } else {
+                        getString(R.string.stickers_imported_some_failed, ok, failed)
+                    }
+                Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+            }
+        }, "keyhack-sticker-import").start()
+    }
+
+    /** The keyboard's ＋ button opens this screen asking for an import. */
+    private fun handleImportRequest(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_IMPORT_STICKERS, false) == true) {
+            intent.removeExtra(EXTRA_IMPORT_STICKERS)
+            openStickerPicker()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleImportRequest(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val settings = KeyHackSettings(this)
+        stickerCount = stickers.list().size
+        if (savedInstanceState == null) handleImportRequest(intent)
         setContent {
             KeyHackTheme {
                 SettingsScreen(
                     status = status,
                     settings = settings,
+                    stickerCount = stickerCount,
+                    onImportStickers = ::openStickerPicker,
+                    onDeleteStickers = {
+                        stickers.deleteAll()
+                        stickerCount = 0
+                    },
                     onEnable = { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) },
                     onSelect = { getSystemService(InputMethodManager::class.java).showInputMethodPicker() },
                     onClearLearning = {
@@ -100,6 +155,10 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Written when the user clears learned words; the IME listens for it. */
         const val LEARNING_CLEAR = "learning_clear"
+
+        /** Sent by the keyboard's sticker panel (KeyHackImeService.EXTRA_IMPORT_STICKERS). */
+        const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
+        const val MAX_STICKER_IMPORT = 30
     }
 }
 
@@ -148,6 +207,9 @@ private class Prefs(val settings: KeyHackSettings) {
 private fun SettingsScreen(
     status: ImeStatus,
     settings: KeyHackSettings,
+    stickerCount: Int,
+    onImportStickers: () -> Unit,
+    onDeleteStickers: () -> Unit,
     onEnable: () -> Unit,
     onSelect: () -> Unit,
     onClearLearning: () -> Unit,
@@ -196,6 +258,7 @@ private fun SettingsScreen(
             TypingSection(p, onClearLearning)
             PcSection(p)
             GifSection(p)
+            StickerSection(stickerCount, onImportStickers, onDeleteStickers)
             Section(stringResource(R.string.section_privacy)) {
                 Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium)
             }
@@ -384,6 +447,18 @@ private fun PcSection(p: Prefs) {
 }
 
 @Composable
+private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> Unit) {
+    Section(stringResource(R.string.section_stickers)) {
+        Text(stringResource(R.string.stickers_body), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.stickers_count, count), style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onImport) { Text(stringResource(R.string.stickers_import)) }
+            if (count > 0) OutlinedButton(onClick = onDeleteAll) { Text(stringResource(R.string.stickers_delete_all)) }
+        }
+    }
+}
+
+@Composable
 private fun GifSection(p: Prefs) {
     Section(stringResource(R.string.section_gif)) {
         val enabled = p.bool(K.GIF_ENABLED, true)
@@ -395,14 +470,8 @@ private fun GifSection(p: Prefs) {
             p.set { putBoolean(K.GIF_ENABLED, it) }
         }
         if (!enabled) return@Section
-        val provider = p.string(K.GIF_PROVIDER, "giphy")
-        Choice(
-            stringResource(R.string.pref_gif_provider),
-            provider,
-            mapOf("giphy" to "Giphy", "tenor" to "Tenor"),
-        ) { v ->
-            p.set { putString(K.GIF_PROVIDER, v) }
-        }
+        // Giphy is the only provider left (Tenor's API closed on 2026-06-30).
+        val provider = "giphy"
         TextPref(
             stringResource(R.string.pref_gif_key),
             p.string(K.GIF_KEY_PREFIX + provider, ""),

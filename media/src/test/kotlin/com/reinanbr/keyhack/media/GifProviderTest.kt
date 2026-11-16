@@ -24,29 +24,16 @@ class GifProviderTest {
     }
 
     @Test
-    fun parsesTenor() {
-        val body =
-            """{"results": [{"id": "1", "content_description": "dog", "media_formats": {
-                 "tinygif": {"url": "https://media.tenor.com/t.gif", "dims": [120, 90]},
-                 "gif": {"url": "https://media.tenor.com/g.gif", "dims": [480, 360]}}}], "next": "CAo="}"""
-        val page = TenorProvider("k").parse(body)
-        assertEquals("https://media.tenor.com/t.gif", page.items[0].preview.url)
-        assertEquals(480, page.items[0].full.width)
-        assertEquals("CAo=", page.next)
-        assertNull(TenorProvider("k").parse("""{"results": [], "next": ""}""").next)
-    }
-
-    @Test
     fun buildsEncodedUrls() {
         val url = GiphyProvider("my key").searchUrl("gato & cão", null, 24, "pt-BR")
         assertTrue(url.startsWith("https://api.giphy.com/v1/gifs/search?api_key=my+key&q=gato+%26+c%C3%A3o"), url)
-        assertTrue(TenorProvider("k").trendingUrl("CAo=", 10, "en-US").endsWith("&pos=CAo%3D"))
     }
 
     @Test
     fun noKeyMeansNoProvider() {
         assertNull(GifProvider.create("giphy", "  "))
         assertNull(GifProvider.create("nope", "k"))
+        assertNull(GifProvider.create("tenor", "k"), "the Tenor API was shut down on 2026-06-30")
     }
 
     @Test

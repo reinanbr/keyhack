@@ -17,6 +17,14 @@
   <string name="section_typing">Typing and suggestions</string>
   <string name="section_pc">PC / Hacker mode</string>
   <string name="section_gif">GIFs</string>
+  <string name="section_stickers">Stickers</string>
+  <string name="stickers_body">Import your own images; they become WhatsApp-style stickers (512×512 WebP). Any emoji can also be sent as a sticker from the keyboard\'s 🖼 button. Images stay on this device.</string>
+  <string name="stickers_count">%1$d stickers</string>
+  <string name="stickers_import">Import images</string>
+  <string name="stickers_delete_all">Delete all</string>
+  <string name="stickers_importing">Making stickers…</string>
+  <string name="stickers_imported">%1$d stickers added</string>
+  <string name="stickers_imported_some_failed">%1$d stickers added, %2$d images could not be read</string>
   <string name="section_privacy">Privacy</string>
 
   <string name="pref_layout">Letter layout</string>
@@ -55,9 +63,8 @@
 
   <string name="pref_gif_enabled">Enable GIFs</string>
   <string name="pref_gif_enabled_summary">Off = KeyHack never uses the network</string>
-  <string name="pref_gif_provider">Provider</string>
   <string name="pref_gif_key">Your API key</string>
-  <string name="pref_gif_key_help">GIFs use your own free API key. Get one at developers.giphy.com (Giphy) or console.cloud.google.com, Tenor API (Tenor). It is stored only on this device.</string>
+  <string name="pref_gif_key_help">GIFs use your own Giphy API key. A free test key (limited searches per hour) is at developers.giphy.com; production keys may be paid. It is stored only on this device.</string>
   <string name="pref_gif_privacy">Only what you type in the GIF search box is sent, over HTTPS, to the provider you chose. The provider also sees your API key and IP address.</string>
   <string name="show">Show</string>
   <string name="hide">Hide</string>

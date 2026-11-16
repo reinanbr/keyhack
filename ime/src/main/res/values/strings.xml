@@ -11,7 +11,7 @@
   <string name="keyhack_enter_done">Done</string>
   <string name="keyhack_emoji_search_hint">Search emoji</string>
   <string name="keyhack_gif_search_hint">Search GIFs</string>
-  <string name="keyhack_gif_no_key">Add your Giphy or Tenor API key in KeyHack settings (⚙) to use GIFs.</string>
+  <string name="keyhack_gif_no_key">Add your Giphy API key in KeyHack settings (⚙) to use GIFs.</string>
   <string name="keyhack_gif_loading">Loading…</string>
   <string name="keyhack_gif_empty">No GIFs found</string>
   <string name="keyhack_gif_error">Couldn\'t load GIFs. Check your connection and API key.</string>
@@ -21,6 +21,9 @@
   <string name="keyhack_gif_share_fallback">This app doesn\'t accept GIFs from keyboards. Pick it in the share sheet.</string>
   <string name="keyhack_msg_soon">Coming in a later version</string>
   <string name="keyhack_msg_incognito_on">Incognito: nothing you type is learned</string>
+  <string name="keyhack_sticker">Sticker</string>
+  <string name="keyhack_sticker_mine">Mine</string>
+  <string name="keyhack_sticker_empty">No stickers yet. Tap ＋ to import images, or tap ☺ to send an emoji as a sticker.</string>
   <string name="keyhack_msg_mode_simple">Simple keyboard: for chatting</string>
   <string name="keyhack_msg_mode_advanced">Advanced keyboard: Ctrl, Alt, arrows and code symbols</string>
   <string name="keyhack_msg_incognito_off">Incognito off</string>

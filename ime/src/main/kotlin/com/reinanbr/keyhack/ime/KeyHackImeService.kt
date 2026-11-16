@@ -5,11 +5,13 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
+import android.view.WindowInsets
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -25,6 +27,8 @@ import com.reinanbr.keyhack.ime.ui.EditAction
 import com.reinanbr.keyhack.ime.ui.EmojiPanel
 import com.reinanbr.keyhack.ime.ui.EmojiStore
 import com.reinanbr.keyhack.ime.ui.GifPanel
+import com.reinanbr.keyhack.ime.ui.GifStrip
+import com.reinanbr.keyhack.ime.ui.StickerPanel
 import com.reinanbr.keyhack.ime.ui.StripView
 import com.reinanbr.keyhack.ime.ui.ToolsPanel
 import com.reinanbr.keyhack.keyboard.model.Command
@@ -41,6 +45,7 @@ import com.reinanbr.keyhack.keyboard.view.KeyboardView
 import com.reinanbr.keyhack.media.GifItem
 import com.reinanbr.keyhack.media.GifProvider
 import com.reinanbr.keyhack.media.GifRepository
+import com.reinanbr.keyhack.stickers.StickerStore
 import com.reinanbr.keyhack.suggest.Candidate
 import com.reinanbr.keyhack.suggest.Suggester
 import com.reinanbr.keyhack.suggest.Suggestions
@@ -48,6 +53,7 @@ import com.reinanbr.keyhack.theme.KeyboardColors
 import com.reinanbr.keyhack.theme.KeyboardThemes
 import java.text.BreakIterator
 import java.util.Locale
+import java.util.concurrent.Executors
 import com.reinanbr.keyhack.keyboard.model.Modifier as Mod
 
 /**
@@ -67,8 +73,9 @@ class KeyHackImeService :
     KeyboardView.Listener,
     EmojiPanel.Listener,
     GifPanel.Listener,
+    StickerPanel.Listener,
     ToolsPanel.Listener {
-    private enum class Panel { KEYBOARD, EMOJI, GIF, TOOLS }
+    private enum class Panel { KEYBOARD, EMOJI, GIF, STICKER, TOOLS }
 
     private enum class Search { NONE, EMOJI, GIF }
 
@@ -77,17 +84,21 @@ class KeyHackImeService :
     private lateinit var suggester: Suggester
     private lateinit var gifs: GifRepository
     private lateinit var emojiStore: EmojiStore
+    private lateinit var stickers: StickerStore
+    private val stickerIo = Executors.newSingleThreadExecutor() // threads start on first use
     private val main = Handler(Looper.getMainLooper())
 
     private var root: FrameLayout? = null
     private var strip: StripView? = null
     private var searchResults: StripView? = null
+    private var gifStrip: GifStrip? = null
     private var content: FrameLayout? = null
     private var keyboardView: KeyboardView? = null
     private var popup: KeyPopupView? = null
     private var emojiPanel: EmojiPanel? = null
     private var gifPanel: GifPanel? = null
     private var toolsPanel: ToolsPanel? = null
+    private var stickerPanel: StickerPanel? = null
     private var emojiData: EmojiData? = null
 
     private var colors: KeyboardColors = KeyboardThemes.LIGHT
@@ -139,6 +150,7 @@ class KeyHackImeService :
         suggester = Suggester(this)
         gifs = GifRepository(this)
         emojiStore = EmojiStore(this)
+        stickers = StickerStore(this)
         Thread({
             val data = runCatching { assets.open("emoji.tsv").bufferedReader().use(EmojiData::read) }.getOrNull()
             main.post {
@@ -152,6 +164,7 @@ class KeyHackImeService :
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
         suggester.close()
         gifs.close()
+        stickerIo.shutdown()
         main.removeCallbacksAndMessages(null)
         root = null
         keyboardView = null
@@ -187,6 +200,14 @@ class KeyHackImeService :
             results,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
+        val liveGifs = GifStrip(ctx, gifs).also {
+            it.visibility = View.GONE
+            it.listener = GifStrip.Listener(::onGifPicked)
+        }
+        column.addView(
+            liveGifs,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
         column.addView(
             frame,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
@@ -202,19 +223,36 @@ class KeyHackImeService :
             overlay,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
+        // Android 15+ draws the IME navigation bar (hide-keyboard and switcher
+        // buttons, gesture handle) over the bottom of the input view. Keep the
+        // keys above it, or taps on the bottom row hit "hide keyboard".
+        rootView.setOnApplyWindowInsetsListener { v, insets ->
+            v.setPadding(0, 0, 0, navBarInset(insets))
+            insets
+        }
         root = rootView
         strip = stripView
         searchResults = results
+        gifStrip = liveGifs
         content = frame
         keyboardView = kv
         popup = overlay
         emojiPanel = null
         gifPanel = null
         toolsPanel = null
+        stickerPanel = null
         settingsChanged = true
         panel = Panel.KEYBOARD
         return rootView
     }
+
+    private fun navBarInset(insets: WindowInsets): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.tappableElement()).bottom
+        } else {
+            @Suppress("DEPRECATION") // The only API before Android 11.
+            insets.systemWindowInsetBottom
+        }
 
     private fun applySettings() {
         settingsChanged = false
@@ -851,6 +889,7 @@ class KeyHackImeService :
     private fun toolbarItems(): List<StripView.Item> = buildList {
         add(StripView.Item("emoji", "☺", large = true))
         if (gifAllowed()) add(StripView.Item("gif", "GIF", bold = true))
+        add(StripView.Item("sticker", "🖼", large = true))
         add(StripView.Item("tools", "</>", bold = true))
         add(StripView.Item("mode", "DEV", bold = true, accent = advanced))
         if (advanced) add(StripView.Item("pc", if (pcMode) "ABC" else "PC", bold = true, accent = pcMode))
@@ -871,6 +910,8 @@ class KeyHackImeService :
             id == "emoji" -> onCommand(Command.EMOJI)
 
             id == "gif" -> onCommand(Command.GIF)
+
+            id == "sticker" -> openStickers()
 
             id == "tools" -> onCommand(Command.TOOLS)
 
@@ -951,6 +992,12 @@ class KeyHackImeService :
                     frame.addView(it)
                 }
 
+                Panel.STICKER -> stickerPanel ?: StickerPanel(this, stickers).also {
+                    it.listener = this
+                    stickerPanel = it
+                    frame.addView(it)
+                }
+
                 Panel.TOOLS -> toolsPanel ?: ToolsPanel(this).also {
                     it.listener = this
                     toolsPanel = it
@@ -965,11 +1012,21 @@ class KeyHackImeService :
             emojiPanel?.applyColors(colors)
             gifPanel?.applyColors(colors)
             toolsPanel?.applyColors(colors)
+            stickerPanel?.applyColors(colors)
         }
         if (p == Panel.EMOJI) emojiPanel?.refresh()
+        if (p == Panel.STICKER) {
+            stickerPanel?.emoji = stickerEmoji()
+            stickerPanel?.refresh()
+        }
         view.visibility = View.VISIBLE
         strip?.visibility = if (p == Panel.KEYBOARD) View.VISIBLE else View.GONE
     }
+
+    private fun currentGifProvider(): GifProvider? =
+        GifProvider.create(settings.gifProvider, settings.gifKey(settings.gifProvider))
+
+    private fun gifLocale(): String = if (languages().first() == "pt") "pt-BR" else "en-US"
 
     /** GIF search is the only network use (ADR 0004): never in incognito or password fields. */
     private fun gifAllowed(): Boolean = settings.gifEnabled && !incognito && policy.kind != FieldKind.PASSWORD
@@ -982,8 +1039,8 @@ class KeyHackImeService :
         }
         showPanel(Panel.GIF)
         val p = gifPanel ?: return
-        p.provider = GifProvider.create(settings.gifProvider, settings.gifKey(settings.gifProvider))
-        p.locale = languages().first().let { if (it == "pt") "pt-BR" else "en-US" }
+        p.provider = currentGifProvider()
+        p.locale = gifLocale()
         p.load(null)
     }
 
@@ -1012,7 +1069,7 @@ class KeyHackImeService :
     override fun onGifSearch() = openSearch(Search.GIF)
 
     override fun onGifPicked(item: GifItem) {
-        val provider = gifPanel?.provider
+        val provider = gifPanel?.provider ?: currentGifProvider()
         showMessageOnGif(getString(R.string.keyhack_gif_sending))
         gifs.download(provider, item) { result ->
             result
@@ -1022,12 +1079,82 @@ class KeyHackImeService :
     }
 
     private fun showMessageOnGif(text: String) {
+        if (search == Search.GIF) {
+            showMessage(text)
+            return
+        }
         gifPanel?.showMessage(text)
         main.removeCallbacks(clearGifMessage)
         main.postDelayed(clearGifMessage, MESSAGE_MS)
     }
 
     private val clearGifMessage = Runnable { gifPanel?.showMessage(null) }
+
+    // ------------------------------------------------------------- stickers
+
+    private fun openStickers() {
+        commitComposing(autocorrect = false)
+        showPanel(Panel.STICKER)
+    }
+
+    /** Emoji offered as stickers: recents first, then faces, people and animals. */
+    private fun stickerEmoji(): List<String> {
+        val data = emojiData
+        val groups = listOf("smileys", "people", "nature", "food").flatMap { g ->
+            data?.group(g).orEmpty().map { it.withTone(emojiStore.tone(it.value)) }
+        }
+        return (emojiStore.recents() + groups).distinct().take(MAX_STICKER_EMOJI)
+    }
+
+    override fun onStickerPicked(sticker: StickerPanel.Sticker) {
+        stickerPanel?.showMessage(getString(R.string.keyhack_gif_sending))
+        stickerIo.execute {
+            val file = runCatching {
+                when (sticker) {
+                    is StickerPanel.Sticker.Image -> sticker.file
+                    is StickerPanel.Sticker.Emoji -> stickers.emojiSticker(sticker.text)
+                }
+            }.getOrNull()
+            main.post {
+                if (file == null) {
+                    stickerPanel?.showMessage(getString(R.string.keyhack_gif_error))
+                    return@post
+                }
+                if (sticker is StickerPanel.Sticker.Emoji) emojiStore.addRecent(sticker.text)
+                sendSticker(stickers.uriFor(file))
+            }
+        }
+    }
+
+    /** As a real sticker when the app takes them (WhatsApp), else as a WebP image, else via the share sheet. */
+    private fun sendSticker(uri: Uri) {
+        val ic = currentInputConnection
+        val editor = currentInputEditorInfo
+        val description = getString(R.string.keyhack_sticker)
+        val sent = ic != null && editor != null &&
+            listOf(StickerStore.MIME_WHATSAPP, StickerStore.MIME_WEBP).any { mime ->
+                ContentCommitter.commit(ic, editor, uri, mime, description)
+            }
+        if (sent) {
+            stickerPanel?.showMessage(null)
+            return
+        }
+        stickerPanel?.showMessage(null)
+        showMessage(getString(R.string.keyhack_gif_share_fallback))
+        shareFallback(uri, StickerStore.MIME_WEBP, description)
+    }
+
+    override fun onStickerBack() {
+        showPanel(Panel.KEYBOARD)
+        showDefaultStrip()
+    }
+
+    override fun onStickerImport() {
+        val intent = packageManager.getLaunchIntentForPackage(packageName) ?: return
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        intent.putExtra(EXTRA_IMPORT_STICKERS, true)
+        startActivity(intent)
+    }
 
     private fun sendGif(uri: Uri, item: GifItem) {
         val ic = currentInputConnection
@@ -1038,11 +1165,16 @@ class KeyHackImeService :
             return
         }
         // The app does not take GIFs from keyboards: hand it over through the share sheet.
+        showMessageOnGif(getString(R.string.keyhack_gif_share_fallback))
+        shareFallback(uri, GIF_MIME, item.description)
+    }
+
+    private fun shareFallback(uri: Uri, mime: String, description: String) {
         val send =
             Intent(Intent.ACTION_SEND).apply {
-                type = GIF_MIME
+                type = mime
                 putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newRawUri(item.description, uri)
+                clipData = ClipData.newRawUri(description, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 editorPackage?.let { setPackage(it) }
             }
@@ -1050,7 +1182,6 @@ class KeyHackImeService :
             send,
             null,
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        showMessageOnGif(getString(R.string.keyhack_gif_share_fallback))
         runCatching { startActivity(chooser) }.onFailure {
             send.setPackage(null)
             runCatching {
@@ -1150,6 +1281,33 @@ class KeyHackImeService :
         search = Search.NONE
         searchQuery.setLength(0)
         searchResults?.visibility = View.GONE
+        main.removeCallbacks(liveGifSearch)
+        liveGifGeneration++
+        gifStrip?.clear()
+        gifStrip?.visibility = View.GONE
+    }
+
+    private var liveGifGeneration = 0
+
+    /** Fetches results for the query typed so far (debounced, latest wins). */
+    private val liveGifSearch = Runnable {
+        val strip = gifStrip ?: return@Runnable
+        val provider = currentGifProvider()
+        if (provider == null) {
+            strip.clear()
+            strip.showMessage(getString(R.string.keyhack_gif_no_key))
+            return@Runnable
+        }
+        val gen = ++liveGifGeneration
+        strip.showMessage(getString(R.string.keyhack_gif_loading))
+        gifs.page(provider, searchQuery.toString().ifBlank { null }, null, gifLocale()) { result ->
+            if (gen != liveGifGeneration || search != Search.GIF) return@page
+            result
+                .onSuccess { page ->
+                    strip.show(page.items, provider)
+                    strip.showMessage(if (page.items.isEmpty()) getString(R.string.keyhack_gif_empty) else null)
+                }.onFailure { strip.showMessage(getString(R.string.keyhack_gif_error)) }
+        }
     }
 
     private fun closeSearchToPanel() {
@@ -1196,6 +1354,14 @@ class KeyHackImeService :
 
     private fun onSearchChanged() {
         renderStrip()
+        if (search == Search.GIF) {
+            gifStrip?.let {
+                it.applyColors(colors)
+                it.visibility = View.VISIBLE
+            }
+            main.removeCallbacks(liveGifSearch)
+            main.postDelayed(liveGifSearch, LIVE_GIF_DELAY_MS)
+        }
         val results = searchResults ?: return
         if (search != Search.EMOJI) {
             results.visibility = View.GONE
@@ -1246,6 +1412,9 @@ class KeyHackImeService :
         private const val PERCENT = 100f
         private const val DOUBLE_SPACE_MS = 800L
         private const val MESSAGE_MS = 2500L
+        private const val LIVE_GIF_DELAY_MS = 350L
+        private const val MAX_STICKER_EMOJI = 160
+        const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64
         private const val TOKEN_LOOKBACK = 256

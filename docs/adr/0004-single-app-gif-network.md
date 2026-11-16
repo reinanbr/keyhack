@@ -35,7 +35,8 @@ The network is fenced in by these rules:
    `User-Agent`, an empty `Accept-Language`.
 4. **Pinned destinations.** `HttpFetcher` accepts HTTPS URLs only, on the
    active provider's host allowlist (Giphy: `api.giphy.com` and
-   `*.giphy.com` media hosts; Tenor: `tenor.googleapis.com` and `*.tenor.com`). Redirects are followed by hand
+   `*.giphy.com` media hosts). Tenor was removed after Google shut its
+   public API down on 2026-06-30. Redirects are followed by hand
    and re-checked against the allowlist. Responses are size-capped and parsed
    as untrusted input.
 5. **Transport.** `network_security_config.xml` forbids cleartext and trusts
@@ -54,7 +55,7 @@ The network is fenced in by these rules:
   companion-spoofing risk of ADR 0001.
 - Adversary 4 (network attackers): HTTPS only, system CAs only, host
   allowlist re-checked on redirects.
-- The provider (Giphy or Tenor) sees the search terms, the API key and the
+- The provider (Giphy) sees the search terms, the API key and the
   device's IP address. This is stated in the settings screen.
 
 ## Consequences
