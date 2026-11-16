@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
                 val failed = uris.size - ok
                 val text =
                     if (failed == 0) {
-                        getString(R.string.stickers_imported, ok)
+                        resources.getQuantityString(R.plurals.stickers_imported, ok, ok)
                     } else {
                         getString(R.string.stickers_imported_some_failed, ok, failed)
                     }
@@ -450,7 +450,10 @@ private fun PcSection(p: Prefs) {
 private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> Unit) {
     Section(stringResource(R.string.section_stickers)) {
         Text(stringResource(R.string.stickers_body), style = MaterialTheme.typography.bodyMedium)
-        Text(stringResource(R.string.stickers_count, count), style = MaterialTheme.typography.bodySmall)
+        Text(
+            LocalContext.current.resources.getQuantityString(R.plurals.stickers_count, count, count),
+            style = MaterialTheme.typography.bodySmall,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onImport) { Text(stringResource(R.string.stickers_import)) }
             if (count > 0) OutlinedButton(onClick = onDeleteAll) { Text(stringResource(R.string.stickers_delete_all)) }

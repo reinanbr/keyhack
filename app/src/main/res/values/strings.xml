@@ -19,12 +19,18 @@
   <string name="section_gif">GIFs</string>
   <string name="section_stickers">Stickers</string>
   <string name="stickers_body">Import your own images; they become WhatsApp-style stickers (512×512 WebP). Any emoji can also be sent as a sticker from the keyboard\'s 🖼 button. Images stay on this device.</string>
-  <string name="stickers_count">%1$d stickers</string>
+  <plurals name="stickers_count">
+    <item quantity="one">%1$d sticker</item>
+    <item quantity="other">%1$d stickers</item>
+  </plurals>
   <string name="stickers_import">Import images</string>
   <string name="stickers_delete_all">Delete all</string>
   <string name="stickers_importing">Making stickers…</string>
-  <string name="stickers_imported">%1$d stickers added</string>
-  <string name="stickers_imported_some_failed">%1$d stickers added, %2$d images could not be read</string>
+  <plurals name="stickers_imported">
+    <item quantity="one">%1$d sticker added</item>
+    <item quantity="other">%1$d stickers added</item>
+  </plurals>
+  <string name="stickers_imported_some_failed">Stickers added: %1$d. Images that could not be read: %2$d.</string>
   <string name="section_privacy">Privacy</string>
 
   <string name="pref_layout">Letter layout</string>

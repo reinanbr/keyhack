@@ -18,12 +18,20 @@
   <string name="section_gif">GIFs</string>
   <string name="section_stickers">Figurinhas</string>
   <string name="stickers_body">Importe suas imagens; elas viram figurinhas no formato do WhatsApp (WebP 512×512). Qualquer emoji também pode ser enviado como figurinha pelo botão 🖼 do teclado. As imagens ficam só neste aparelho.</string>
-  <string name="stickers_count">%1$d figurinhas</string>
+  <plurals name="stickers_count">
+    <item quantity="one">%1$d figurinha</item>
+    <item quantity="many">%1$d figurinhas</item>
+    <item quantity="other">%1$d figurinhas</item>
+  </plurals>
   <string name="stickers_import">Importar imagens</string>
   <string name="stickers_delete_all">Apagar todas</string>
   <string name="stickers_importing">Criando figurinhas…</string>
-  <string name="stickers_imported">%1$d figurinhas adicionadas</string>
-  <string name="stickers_imported_some_failed">%1$d figurinhas adicionadas, %2$d imagens não puderam ser lidas</string>
+  <plurals name="stickers_imported">
+    <item quantity="one">%1$d figurinha adicionada</item>
+    <item quantity="many">%1$d figurinhas adicionadas</item>
+    <item quantity="other">%1$d figurinhas adicionadas</item>
+  </plurals>
+  <string name="stickers_imported_some_failed">Figurinhas adicionadas: %1$d. Imagens que não puderam ser lidas: %2$d.</string>
   <string name="section_privacy">Privacidade</string>
 
   <string name="pref_layout">Layout das letras</string>
