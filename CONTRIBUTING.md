@@ -5,16 +5,17 @@ changes is "safe first, then useful".
 
 ## Ground rules
 
-1. **The core app stays offline.** No `INTERNET`, no network libraries, no
-   WebViews, no dynamic code loading, no reflection-based plugins. The build
-   enforces the permission part; reviewers enforce the rest.
+1. **Network only in `:media`, only for GIFs.** No network code in any other
+   module, no WebViews, no dynamic code loading, no reflection-based plugins.
+   The build enforces the permission list and the import ban (ADR 0004);
+   reviewers enforce the rest.
 2. **ADR required** (`docs/adr/`, copy `0000-template.md`) for any change that
    adds a permission, an exported component, a native parser or a new data
    store, and for hard-to-reverse formats (dictionary, Room schema, layout
    schema, IPC contract).
 3. **Never log user data** (typed text, clipboard, file contents, keys) at any
    level, including in debug builds and exception messages.
-4. **Untrusted input** (imports, shared files, companion responses): cap the
+4. **Untrusted input** (imports, shared files, GIF provider responses): cap the
    size before parsing, sniff MIME types by magic bytes, validate strictly,
    copy into app-private storage before processing.
 5. **Licensing:** Apache-2.0 only. You may reuse AOSP LatinIME, Hacker's

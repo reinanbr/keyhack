@@ -35,4 +35,15 @@ class ShiftControllerTest {
         assertEquals(ShiftState.OFF, s.state)
         assertEquals(ShiftState.ONCE, s.onShiftTap(10))
     }
+
+    @Test
+    fun autoCapsArmsAndDropsOnlyItsOwnShift() {
+        val s = ShiftController()
+        assertEquals(ShiftState.ONCE, s.applyAutoCaps(true))
+        assertEquals(ShiftState.OFF, s.applyAutoCaps(false))
+        s.onShiftTap(0)
+        assertEquals(ShiftState.ONCE, s.applyAutoCaps(false))
+        s.onShiftTap(100)
+        assertEquals(ShiftState.LOCKED, s.applyAutoCaps(false))
+    }
 }

@@ -4,7 +4,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
 /**
- * Convention for the two apps (core IME and companion). Release builds are
+ * Convention for the KeyHack app module. Release builds are
  * minified, strip android.util.Log (see config/proguard/strip-logging.pro) and
  * leave out the dependency-info block so the APK can be built reproducibly.
  */

@@ -17,8 +17,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "KeyHack"
 
-// Core IME app and its libraries. None of these may pull in INTERNET; the
-// :app permission guard enforces it on the merged release manifest.
+// One app: the keyboard and all its features. Only :media touches the
+// network (GIF search), and only after the user opens the GIF panel.
 include(
     ":app",
     ":ime",
@@ -26,6 +26,7 @@ include(
     ":layouts",
     ":suggest",
     ":emoji",
+    ":media",
     ":stickers",
     ":commit",
     ":devtools",
@@ -34,9 +35,4 @@ include(
     ":data",
     ":theme",
     ":core",
-    ":online-api",
 )
-
-// KeyHack Online, the optional networked companion. It never hosts an IME.
-include(":companion")
-project(":companion").projectDir = file("companion")

@@ -1,0 +1,10 @@
+{
+  "id": "dvorak",
+  "rows": [
+    [{"t": "'", "hint": "1"}, {"t": ",", "hint": "2"}, {"t": ".", "hint": "3"}, {"t": "p", "hint": "4"}, {"t": "y", "hint": "5"},
+     {"t": "f", "hint": "6"}, {"t": "g", "hint": "7"}, {"t": "c", "hint": "8"}, {"t": "r", "hint": "9"}, {"t": "l", "hint": "0"}],
+    ["a", "o", "e", "u", "i", "d", "h", "t", "n", "s"],
+    [{"code": "shift"}, "q", "j", "k", "x", "b", "m", "w", "v", "z", {"code": "delete"}],
+    "@alpha-bottom"
+  ]
+}

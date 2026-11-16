@@ -12,6 +12,6 @@ tasks.named("check") {
 
 tasks.register("verifyManifestPolicies") {
     group = "verification"
-    description = "Checks the release manifests of both apps against the permission/export policy."
-    dependsOn(":app:verifyReleaseManifestPolicy", ":companion:verifyReleaseManifestPolicy")
+    description = "Checks the release manifest against the permission/export policy."
+    dependsOn(":app:verifyReleaseManifestPolicy")
 }

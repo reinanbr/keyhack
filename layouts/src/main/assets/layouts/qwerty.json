@@ -1,0 +1,10 @@
+{
+  "id": "qwerty",
+  "rows": [
+    [{"t": "q", "hint": "1"}, {"t": "w", "hint": "2"}, {"t": "e", "hint": "3"}, {"t": "r", "hint": "4"}, {"t": "t", "hint": "5"},
+     {"t": "y", "hint": "6"}, {"t": "u", "hint": "7"}, {"t": "i", "hint": "8"}, {"t": "o", "hint": "9"}, {"t": "p", "hint": "0"}],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+    [{"code": "shift", "w": 1.5}, "z", "x", "c", "v", "b", "n", "m", {"code": "delete", "w": 1.5}],
+    "@alpha-bottom"
+  ]
+}

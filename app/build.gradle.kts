@@ -14,11 +14,13 @@ android {
     }
 }
 
-// Threat model, adversary 1: the core must not be able to exfiltrate keystrokes.
-// This gate runs on the merged release manifest (all libraries included) and
-// fails `check` and `assembleRelease`. Changing either list needs an ADR.
+// Threat model: the keyboard must not be able to leak keystrokes through
+// components or permissions nobody reviewed. This gate runs on the merged
+// release manifest (all libraries included) and fails `check` and
+// `assembleRelease`. INTERNET is allowed only for GIF search (ADR 0004).
+// Changing either list needs an ADR.
 manifestPolicy {
-    allowedPermissions.set(setOf("android.permission.VIBRATE"))
+    allowedPermissions.set(setOf("android.permission.VIBRATE", "android.permission.INTERNET"))
     allowedExported.set(
         setOf(
             "com.reinanbr.keyhack.ime.KeyHackImeService",
@@ -33,6 +35,7 @@ manifestPolicy {
 dependencies {
     implementation(project(":ime"))
     implementation(project(":core"))
+    implementation(project(":data"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 }

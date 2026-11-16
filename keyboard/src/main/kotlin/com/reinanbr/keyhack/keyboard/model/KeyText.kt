@@ -8,7 +8,16 @@ import java.util.Locale
  */
 fun Key.outputText(shifted: Boolean, locale: Locale = Locale.ROOT): String? {
     val action = action as? KeyAction.Character ?: return null
-    return if (shifted) action.text.uppercase(locale) else action.text
+    if (!shifted) return action.text
+    return action.shifted ?: action.text.uppercase(locale)
 }
 
 fun Key.displayLabel(shifted: Boolean, locale: Locale = Locale.ROOT): String = outputText(shifted, locale) ?: label
+
+/** Long-press alternatives, shifted like the key itself. */
+fun Key.popupFor(shifted: Boolean, locale: Locale = Locale.ROOT): List<String> =
+    if (shifted && action is KeyAction.Character && action.shifted == null) {
+        popup.map { it.uppercase(locale) }
+    } else {
+        popup
+    }

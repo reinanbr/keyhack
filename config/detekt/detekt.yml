@@ -1,6 +1,15 @@
 # Built on detekt's default config (buildUponDefaultConfig = true); only
 # overrides live here.
+# Parsers, the edit-distance search and touch handling are naturally branchy;
+# these limits keep them reviewable without forcing artificial splits.
 complexity:
+  CyclomaticComplexMethod:
+    allowedComplexity: 20
+    ignoreSimpleWhenEntries: true
+  ComplexCondition:
+    allowedConditions: 6
+  LongMethod:
+    allowedLines: 80
   LongParameterList:
     allowedFunctionParameters: 8
     allowedConstructorParameters: 10
@@ -14,6 +23,13 @@ naming:
     ignoreAnnotated: ['Composable']
 
 style:
+  ReturnCount:
+    max: 4
+    excludeGuardClauses: true
+  ThrowsCount:
+    max: 6
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 3
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
@@ -26,6 +42,31 @@ style:
         value: 'kotlin.io.println'
       - reason: 'Typed text must never be printed.'
         value: 'kotlin.io.print'
+  # The IME holds INTERNET only for GIF search (ADR 0004). Network code lives
+  # in :media and nowhere else, so a review of that module covers every
+  # request the keyboard can make.
+  ForbiddenImport:
+    active: true
+    forbiddenImports:
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'java.net.URL'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'java.net.URLConnection'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'java.net.HttpURLConnection'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'java.net.Socket'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'java.net.DatagramSocket'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'javax.net.*'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'javax.net.ssl.*'
+      - reason: 'Network access is confined to :media (ADR 0004).'
+        value: 'okhttp3.*'
+      - reason: 'No WebViews in the keyboard.'
+        value: 'android.webkit.*'
+    excludes: ['**/media/src/main/**']
 
 # `!!` is flagged; a reviewed @Suppress("UnsafeCallOnNullableType") must carry
 # a justification comment.

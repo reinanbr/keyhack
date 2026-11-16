@@ -50,6 +50,14 @@ internal class KeyboardAccessibilityHelper(private val view: KeyboardView) : Exp
 
                 KeyAction.Space -> res.getString(R.string.keyhack_a11y_space)
 
+                is KeyAction.Code -> placed.key.label
+
+                is KeyAction.Mod -> placed.key.label
+
+                is KeyAction.Layer -> placed.key.label
+
+                is KeyAction.Cmd -> placed.key.label
+
                 is KeyAction.Character -> view.labelFor(placed)
             }
         val b = placed.bounds

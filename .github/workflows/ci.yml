@@ -43,15 +43,15 @@ jobs:
 
       # check = unit tests (including the build-logic guard tests), Android lint
       # and detekt/ktlint for every module, and the manifest policy gate.
-      # assembleRelease builds both apps with R8 and re-runs the gate.
+      # assembleRelease builds the app with R8 and re-runs the gate.
       - name: Build, test and verify
         run: ./gradlew check assembleRelease verifyManifestPolicies --stacktrace
 
       - name: Release APK checksums and permissions
         run: |
-          sha256sum app/build/outputs/apk/release/*.apk companion/build/outputs/apk/release/*.apk
+          sha256sum app/build/outputs/apk/release/*.apk
           AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
-          for apk in app/build/outputs/apk/release/*.apk companion/build/outputs/apk/release/*.apk; do
+          for apk in app/build/outputs/apk/release/*.apk; do
             "$AAPT2" dump permissions "$apk"
           done
 

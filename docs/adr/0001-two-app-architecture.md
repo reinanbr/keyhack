@@ -1,6 +1,6 @@
 # 0001. Two-app architecture: an offline core and an optional networked companion
 
-- Status: accepted
+- Status: superseded by [0004](0004-single-app-gif-network.md)
 - Date: 2026-11-15
 
 ## Context

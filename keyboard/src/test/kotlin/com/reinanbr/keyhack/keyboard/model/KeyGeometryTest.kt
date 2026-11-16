@@ -4,13 +4,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KeyGeometryTest {
-    private val g = KeyGeometry(BuiltInLayouts.QWERTY, width = 1000f, height = 400f, gap = 10f)
+    private val qwerty = TestLayouts.load("qwerty")
+    private val g = KeyGeometry(qwerty, width = 1000f, height = 400f, gap = 10f)
 
     private fun keyAt(x: Float, y: Float) = g.keys[g.keyIndexAt(x, y)].key
 
     @Test
     fun placesEveryKey() {
-        assertEquals(BuiltInLayouts.QWERTY.rows.sumOf { it.keys.size }, g.keys.size)
+        assertEquals(qwerty.rows.sumOf { it.keys.size }, g.keys.size)
     }
 
     @Test
@@ -38,6 +39,15 @@ class KeyGeometryTest {
     fun outOfBoundsTouchesClamp() {
         assertEquals("q", keyAt(-50f, -50f).label)
         assertEquals("⏎", keyAt(5000f, 5000f).label)
+    }
+
+    @Test
+    fun shorterRowsGetLessHeight() {
+        val short = KeyboardLayout("t", listOf(KeyRow(listOf(Key("1", KeyAction.Character("1"))), 0.5f)) + qwerty.rows)
+        val sg = KeyGeometry(short, width = 1000f, height = 450f, gap = 0f)
+        assertEquals(50f, sg.keys.first().bounds.bottom)
+        assertEquals("1", sg.keys[sg.keyIndexAt(500f, 49f)].key.label)
+        assertEquals("q", sg.keys[sg.keyIndexAt(5f, 51f)].key.label)
     }
 
     @Test

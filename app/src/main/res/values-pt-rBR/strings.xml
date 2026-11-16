@@ -1,14 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="onboarding_title">Configurar o KeyHack</string>
-  <string name="onboarding_privacy">O KeyHack não tem acesso à internet. O que você digita fica neste aparelho.</string>
+  <string name="onboarding_title">KeyHack</string>
+  <string name="onboarding_privacy">O que você digita fica neste aparelho. A rede só é usada na busca de GIFs, e só quando você a abre.</string>
   <string name="step_enable_title">1. Ativar o KeyHack</string>
-  <string name="step_enable_body">Ative o KeyHack nas configurações de teclado. O Android avisa que qualquer teclado pode coletar o que você digita; o KeyHack não consegue enviar isso para lugar nenhum.</string>
+  <string name="step_enable_body">Ative o KeyHack nas configurações de teclado. O Android avisa que qualquer teclado pode coletar o que você digita; o KeyHack nunca envia sua digitação para lugar nenhum.</string>
   <string name="step_enable_action">Abrir configurações de teclado</string>
   <string name="step_select_title">2. Selecionar o KeyHack</string>
   <string name="step_select_body">Defina o KeyHack como teclado atual.</string>
   <string name="step_select_action">Escolher teclado</string>
-  <string name="step_try_title">3. Experimente</string>
+  <string name="step_try_title">Experimente</string>
   <string name="step_try_hint">Digite aqui</string>
   <string name="step_done">Pronto</string>
+
+  <string name="section_keyboard">Teclado</string>
+  <string name="section_typing">Digitação e sugestões</string>
+  <string name="section_pc">Modo PC / Hacker</string>
+  <string name="section_gif">GIFs</string>
+  <string name="section_privacy">Privacidade</string>
+
+  <string name="pref_layout">Layout das letras</string>
+  <string name="pref_number_row">Linha numérica</string>
+  <string name="pref_number_row_summary">Números acima das letras</string>
+  <string name="pref_dev_row">Linha dev</string>
+  <string name="pref_dev_row_summary">Esc, Tab, Ctrl, Alt e setas acima do teclado</string>
+  <string name="pref_dev_row_keys">Teclas da linha dev</string>
+  <string name="pref_dev_row_keys_help">Separadas por espaço: esc tab ctrl alt meta left right up down home end pgup pgdn ins fdel f1…f12, ou qualquer caractere</string>
+  <string name="pref_key_hints">Símbolos nos cantos das teclas</string>
+  <string name="pref_height">Altura das teclas</string>
+  <string name="pref_long_press">Tempo do toque longo</string>
+  <string name="pref_theme">Tema</string>
+  <string name="pref_haptics">Vibrar ao tocar</string>
+  <string name="pref_sound">Som ao tocar</string>
+
+  <string name="pref_suggestions">Mostrar sugestões</string>
+  <string name="pref_autocorrect">Correção automática</string>
+  <string name="pref_autocorrect_summary">Corrige erros e acentos (nao → não) ao dar espaço. O backspace desfaz.</string>
+  <string name="pref_auto_caps">Maiúscula automática</string>
+  <string name="pref_double_space">Ponto com espaço duplo</string>
+  <string name="pref_learning">Aprender palavras novas</string>
+  <string name="pref_learning_summary">Conta as palavras que você usa, só neste aparelho. Nunca em campos de senha.</string>
+  <string name="pref_languages">Dicionários</string>
+  <string name="pref_clear_learning">Apagar palavras aprendidas</string>
+  <string name="pref_clear_learning_done">Palavras aprendidas apagadas</string>
+
+  <string name="pref_pc_apps">Abrir em modo PC nestes apps</string>
+  <string name="pref_pc_apps_help">Nomes de pacote separados por vírgula. Alterne o modo PC em qualquer app pelo botão PC da barra.</string>
+  <string name="pref_pc_no_autocorrect">Sem correção automática no modo PC</string>
+  <string name="pc_help">O modo PC é um layout completo estilo Hacker\'s Keyboard: Esc, Tab, Ctrl, Alt, Meta, setas e uma camada Fn com F1–F12, Home/End, PgUp/PgDn. Toque Ctrl/Alt uma vez para a próxima tecla, duas para travar. As teclas são enviadas como eventos reais, então Ctrl+C funciona no Termux e no SSH.</string>
+
+  <string name="pref_gif_enabled">Ativar GIFs</string>
+  <string name="pref_gif_enabled_summary">Desligado = o KeyHack nunca usa a rede</string>
+  <string name="pref_gif_provider">Provedor</string>
+  <string name="pref_gif_key">Sua chave de API</string>
+  <string name="pref_gif_key_help">Os GIFs usam sua própria chave de API gratuita. Crie uma em developers.giphy.com (Giphy) ou console.cloud.google.com, Tenor API (Tenor). Ela fica salva só neste aparelho.</string>
+  <string name="pref_gif_privacy">Só o que você digita na busca de GIFs é enviado, por HTTPS, ao provedor escolhido. O provedor também vê sua chave de API e seu endereço IP.</string>
+  <string name="show">Mostrar</string>
+  <string name="hide">Ocultar</string>
+
+  <string name="theme_system">Seguir o sistema</string>
+  <string name="theme_dynamic">Material You</string>
+  <string name="theme_light">Claro</string>
+  <string name="theme_dark">Escuro</string>
+  <string name="theme_amoled">Preto AMOLED</string>
+  <string name="layout_qwerty">QWERTY</string>
+  <string name="layout_abnt2">ABNT2 (Brasil, com ç)</string>
+  <string name="layout_azerty">AZERTY</string>
+  <string name="layout_dvorak">Dvorak</string>
+  <string name="layout_colemak">Colemak</string>
+  <string name="layout_pc">PC (sempre)</string>
+  <string name="lang_en">Inglês</string>
+  <string name="lang_pt">Português (Brasil)</string>
+  <string name="privacy_body">Sem analytics, sem relatórios de falha, sem telemetria. As palavras aprendidas ficam num arquivo privado que nunca entra em backup. O que é digitado em campos de senha e em apps que pedem aprendizado não personalizado nunca é aprendido. Use o botão 🕶 da barra para digitar em modo anônimo.</string>
+  <string name="help_title">Dicas</string>
+  <string name="help_body">• Deslize para cima numa tecla para digitar o símbolo do canto ({ } [ ] _ / e outros); toque longo para acentos.\n• ?123 tem todos os símbolos de programação numa página só.\n• Deslize na barra de espaço para mover o cursor.\n• Toque longo no espaço troca de teclado; toque longo na vírgula abre as configurações.\n• Barra: ☺ emoji, GIF, &lt;/&gt; ferramentas dev (maiúsculas, Base64, JSON, hashes, UUID…), modo PC, 🕶 anônimo.</string>
 </resources>

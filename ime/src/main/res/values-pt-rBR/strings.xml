@@ -8,4 +8,19 @@
   <string name="keyhack_enter_next">Próx.</string>
   <string name="keyhack_enter_previous">Ant.</string>
   <string name="keyhack_enter_done">OK</string>
+  <string name="keyhack_emoji_search_hint">Buscar emoji</string>
+  <string name="keyhack_gif_search_hint">Buscar GIFs</string>
+  <string name="keyhack_gif_no_key">Adicione sua chave da API do Giphy ou Tenor nas configurações do KeyHack (⚙) para usar GIFs.</string>
+  <string name="keyhack_gif_loading">Carregando…</string>
+  <string name="keyhack_gif_empty">Nenhum GIF encontrado</string>
+  <string name="keyhack_gif_error">Não foi possível carregar GIFs. Verifique a conexão e a chave da API.</string>
+  <string name="keyhack_gif_no_recents">Os GIFs que você enviar aparecem aqui</string>
+  <string name="keyhack_gif_disabled">GIFs estão desativados nas configurações</string>
+  <string name="keyhack_gif_sending">Enviando…</string>
+  <string name="keyhack_gif_share_fallback">Este app não aceita GIFs do teclado. Escolha-o na tela de compartilhamento.</string>
+  <string name="keyhack_msg_soon">Disponível numa próxima versão</string>
+  <string name="keyhack_msg_incognito_on">Modo anônimo: nada do que você digita é aprendido</string>
+  <string name="keyhack_msg_incognito_off">Modo anônimo desligado</string>
+  <string name="keyhack_msg_select_first">Selecione um texto primeiro (ou digite uma palavra antes do cursor)</string>
+  <string name="keyhack_msg_failed">Não funcionou com este texto</string>
 </resources>

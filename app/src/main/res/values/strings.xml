@@ -1,15 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name" translatable="false">KeyHack</string>
-  <string name="onboarding_title">Set up KeyHack</string>
-  <string name="onboarding_privacy">KeyHack has no internet access. What you type stays on this device.</string>
+  <string name="onboarding_title">KeyHack</string>
+  <string name="onboarding_privacy">What you type stays on this device. The only network use is GIF search, and only when you open it.</string>
   <string name="step_enable_title">1. Enable KeyHack</string>
-  <string name="step_enable_body">Turn on KeyHack in your keyboard settings. Android warns that any keyboard can collect what you type; KeyHack cannot send it anywhere.</string>
+  <string name="step_enable_body">Turn on KeyHack in your keyboard settings. Android warns that any keyboard can collect what you type; KeyHack never sends your typing anywhere.</string>
   <string name="step_enable_action">Open keyboard settings</string>
   <string name="step_select_title">2. Select KeyHack</string>
   <string name="step_select_body">Make KeyHack your current keyboard.</string>
   <string name="step_select_action">Choose keyboard</string>
-  <string name="step_try_title">3. Try it</string>
+  <string name="step_try_title">Try it</string>
   <string name="step_try_hint">Type here</string>
   <string name="step_done">Done</string>
+
+  <string name="section_keyboard">Keyboard</string>
+  <string name="section_typing">Typing and suggestions</string>
+  <string name="section_pc">PC / Hacker mode</string>
+  <string name="section_gif">GIFs</string>
+  <string name="section_privacy">Privacy</string>
+
+  <string name="pref_layout">Letter layout</string>
+  <string name="pref_number_row">Number row</string>
+  <string name="pref_number_row_summary">Digits above the letters</string>
+  <string name="pref_dev_row">Dev row</string>
+  <string name="pref_dev_row_summary">Esc, Tab, Ctrl, Alt and arrows above the keyboard</string>
+  <string name="pref_dev_row_keys">Dev row keys</string>
+  <string name="pref_dev_row_keys_help">Space-separated: esc tab ctrl alt meta left right up down home end pgup pgdn ins fdel f1…f12, or any character</string>
+  <string name="pref_key_hints">Symbol hints on keys</string>
+  <string name="pref_height">Key height</string>
+  <string name="pref_long_press">Long-press delay</string>
+  <string name="pref_theme">Theme</string>
+  <string name="pref_haptics">Vibrate on key press</string>
+  <string name="pref_sound">Sound on key press</string>
+
+  <string name="pref_suggestions">Show suggestions</string>
+  <string name="pref_autocorrect">Autocorrect</string>
+  <string name="pref_autocorrect_summary">Fixes typos and accents (nao → não) on space. Backspace undoes it.</string>
+  <string name="pref_auto_caps">Auto-capitalization</string>
+  <string name="pref_double_space">Double-space for period</string>
+  <string name="pref_learning">Learn new words</string>
+  <string name="pref_learning_summary">Counts words you use, on this device only. Never in password fields.</string>
+  <string name="pref_languages">Dictionaries</string>
+  <string name="pref_clear_learning">Clear learned words</string>
+  <string name="pref_clear_learning_done">Learned words cleared</string>
+
+  <string name="pref_pc_apps">Open in PC mode for these apps</string>
+  <string name="pref_pc_apps_help">Package names, separated by commas. Toggle PC mode anywhere with the PC button on the toolbar.</string>
+  <string name="pref_pc_no_autocorrect">No autocorrect in PC mode</string>
+  <string name="pc_help">PC mode is a full Hacker\'s Keyboard layout: Esc, Tab, Ctrl, Alt, Meta, arrows and an Fn layer with F1–F12, Home/End, PgUp/PgDn. Tap Ctrl/Alt once for the next key, twice to lock. Keys are sent as real key events, so Ctrl+C works in Termux and SSH.</string>
+
+  <string name="pref_gif_enabled">Enable GIFs</string>
+  <string name="pref_gif_enabled_summary">Off = KeyHack never uses the network</string>
+  <string name="pref_gif_provider">Provider</string>
+  <string name="pref_gif_key">Your API key</string>
+  <string name="pref_gif_key_help">GIFs use your own free API key. Get one at developers.giphy.com (Giphy) or console.cloud.google.com, Tenor API (Tenor). It is stored only on this device.</string>
+  <string name="pref_gif_privacy">Only what you type in the GIF search box is sent, over HTTPS, to the provider you chose. The provider also sees your API key and IP address.</string>
+  <string name="show">Show</string>
+  <string name="hide">Hide</string>
+
+  <string name="theme_system">Follow system</string>
+  <string name="theme_dynamic">Material You</string>
+  <string name="theme_light">Light</string>
+  <string name="theme_dark">Dark</string>
+  <string name="theme_amoled">AMOLED black</string>
+  <string name="layout_qwerty">QWERTY</string>
+  <string name="layout_abnt2">ABNT2 (Brazil, with ç)</string>
+  <string name="layout_azerty">AZERTY</string>
+  <string name="layout_dvorak">Dvorak</string>
+  <string name="layout_colemak">Colemak</string>
+  <string name="layout_pc">PC (always)</string>
+  <string name="lang_en">English</string>
+  <string name="lang_pt">Portuguese (Brazil)</string>
+  <string name="privacy_body">No analytics, no crash reporting, no telemetry. Learned words are stored in a private file that is never backed up. Typing in password fields and in apps that ask for no personalized learning is never learned. Use the 🕶 button on the toolbar for incognito typing.</string>
+  <string name="help_title">Tips</string>
+  <string name="help_body">• Swipe up on a key to type the symbol in its corner ({ } [ ] _ / and more); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.</string>
 </resources>

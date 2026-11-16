@@ -5,33 +5,55 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Typeface
+import android.media.AudioManager
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.view.ViewCompat
+import com.reinanbr.keyhack.keyboard.model.Key
 import com.reinanbr.keyhack.keyboard.model.KeyAction
 import com.reinanbr.keyhack.keyboard.model.KeyGeometry
 import com.reinanbr.keyhack.keyboard.model.KeyboardLayout
+import com.reinanbr.keyhack.keyboard.model.Modifier
 import com.reinanbr.keyhack.keyboard.model.PlacedKey
 import com.reinanbr.keyhack.keyboard.model.ShiftState
+import com.reinanbr.keyhack.keyboard.model.StickyState
 import com.reinanbr.keyhack.keyboard.model.displayLabel
+import com.reinanbr.keyhack.keyboard.model.popupFor
+import com.reinanbr.keyhack.theme.KeyboardColors
+import com.reinanbr.keyhack.theme.KeyboardThemes
+import kotlin.math.abs
 
 /**
- * Canvas-drawn key grid. It reports [KeyAction]s to [listener] and holds no
- * typed text: the IME service owns the InputConnection.
+ * Canvas-drawn key grid. It reports actions to [listener] and holds no typed
+ * text: the IME service owns the InputConnection.
+ *
+ * Gestures: tap; hold for long-press alternatives (slide to pick, release to
+ * commit); hold Delete or an arrow to repeat; slide on the space bar to move
+ * the cursor. A second finger landing commits the first key (rollover).
  *
  * onDraw allocates nothing; geometry is rebuilt only on size/layout changes.
  */
 class KeyboardView(context: Context) : View(context) {
-    fun interface Listener {
-        fun onKey(action: KeyAction)
+    interface Listener {
+        fun onKey(key: Key, action: KeyAction)
+
+        fun onPopupText(text: String)
+
+        /** Space-bar trackpad: [steps] cursor moves, positive = right. */
+        fun onCursorSwipe(steps: Int)
     }
 
     var listener: Listener? = null
 
+    /** Overlay used to draw long-press alternatives. */
+    var popupView: KeyPopupView? = null
+
     var layout: KeyboardLayout? = null
         set(value) {
+            if (field == value) return
             field = value
             rebuildGeometry()
             requestLayout()
@@ -45,6 +67,13 @@ class KeyboardView(context: Context) : View(context) {
             accessibilityHelper.invalidateRoot()
         }
 
+    var modifierStates: Map<Modifier, StickyState> = emptyMap()
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
     /** Label for the Enter key, chosen by the IME from the editor's action. */
     var enterLabel: String = "⏎"
         set(value) {
@@ -52,20 +81,55 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
-    var colors: KeyboardColors = KeyboardColors.fromResources(context)
+    /** Small label drawn on the space bar (current languages). */
+    var spaceLabel: String = ""
         set(value) {
             field = value
             invalidate()
         }
 
+    /** Layer keys whose target equals this are drawn as active (e.g. Fn while in the fn layer). */
+    var activeLayer: String = ""
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var colors: KeyboardColors = KeyboardThemes.LIGHT
+        set(value) {
+            field = value
+            popupView?.colors = value
+            invalidate()
+        }
+
+    var showHints: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    /** Row height multiplier from settings (0.7..1.4). */
+    var heightScale: Float = 1f
+        set(value) {
+            if (field == value) return
+            field = value
+            requestLayout()
+        }
+
+    var hapticsEnabled: Boolean = true
+    var soundEnabled: Boolean = false
+    var longPressMillis: Long = DEFAULT_LONG_PRESS_MS
+
     internal var geometry: KeyGeometry? = null
         private set
 
     private val density = resources.displayMetrics.density
-    private val rowHeightPx = ROW_HEIGHT_DP * density
     private val gapPx = KEY_GAP_DP * density
     private val radiusPx = KEY_RADIUS_DP * density
     private val verticalPaddingPx = VERTICAL_PADDING_DP * density
+    private val swipeStepPx = SWIPE_STEP_DP * density
+    private val swipeSlopPx = SWIPE_SLOP_DP * density
+    private val flickSlopPx = FLICK_SLOP_DP * density
 
     private fun sp(value: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
@@ -76,12 +140,39 @@ class KeyboardView(context: Context) : View(context) {
             textAlign = Paint.Align.CENTER
             textSize = sp(LABEL_SP)
         }
-    private val smallLabelPaint =
-        Paint(labelPaint).apply { textSize = sp(SMALL_LABEL_SP) }
+    private val smallLabelPaint = Paint(labelPaint).apply { textSize = sp(SMALL_LABEL_SP) }
+    private val tinyLabelPaint = Paint(labelPaint).apply { textSize = sp(TINY_LABEL_SP) }
+    private val hintPaint =
+        Paint(labelPaint).apply {
+            textSize = sp(HINT_SP)
+            textAlign = Paint.Align.RIGHT
+        }
+    private val boldSmall = Paint(smallLabelPaint).apply { typeface = Typeface.DEFAULT_BOLD }
     private val rect = RectF()
+    private val audio = context.getSystemService(AudioManager::class.java)
 
-    /** Key index pressed by each active pointer id (-1 = none). */
-    private val pressedByPointer = IntArray(MAX_POINTERS) { NO_KEY }
+    private class Pointer {
+        var key = NO_KEY
+        var downX = 0f
+        var downY = 0f
+        var lastStepX = 0f
+        var consumed = false
+        var popup = false
+        var trackpad = false
+
+        /** Swiped up on a key with a hint: types the hint instead of the key. */
+        var flick = false
+
+        fun clear() {
+            key = NO_KEY
+            consumed = false
+            popup = false
+            trackpad = false
+            flick = false
+        }
+    }
+
+    private val pointers = Array(MAX_POINTERS) { Pointer() }
 
     private var repeatingKey = NO_KEY
     private val repeatRunnable =
@@ -89,10 +180,14 @@ class KeyboardView(context: Context) : View(context) {
             override fun run() {
                 val g = geometry ?: return
                 if (repeatingKey == NO_KEY) return
-                listener?.onKey(g.keys[repeatingKey].key.action)
+                val key = g.keys[repeatingKey].key
+                listener?.onKey(key, key.action)
                 postDelayed(this, REPEAT_INTERVAL_MS)
             }
         }
+
+    private var longPressPointer = -1
+    private val longPressRunnable = Runnable { onLongPress() }
 
     private val accessibilityHelper = KeyboardAccessibilityHelper(this)
 
@@ -101,10 +196,12 @@ class KeyboardView(context: Context) : View(context) {
         isHapticFeedbackEnabled = true
     }
 
+    private val rowHeightPx: Float get() = ROW_HEIGHT_DP * density * heightScale
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        val rows = layout?.rows?.size ?: 0
-        val height = (rows * rowHeightPx + 2 * verticalPaddingPx).toInt()
+        val units = layout?.unitHeight ?: 0f
+        val height = (units * rowHeightPx + 2 * verticalPaddingPx).toInt()
         setMeasuredDimension(width, height)
     }
 
@@ -131,7 +228,16 @@ class KeyboardView(context: Context) : View(context) {
         val shifted = shiftState != ShiftState.OFF
         for (i in g.keys.indices) {
             val placed = g.keys[i]
-            keyPaint.color = keyColor(placed, isPressed(i))
+            val key = placed.key
+            val sticky = stickyState(key)
+            val accent = sticky != StickyState.OFF || key.action == KeyAction.Enter
+            keyPaint.color =
+                when {
+                    isPressed(i) -> colors.pressedKey
+                    accent -> colors.accentKey
+                    key.isFunction -> colors.functionKey
+                    else -> colors.key
+                }
             rect.set(
                 placed.bounds.left,
                 placed.bounds.top + verticalPaddingPx,
@@ -139,14 +245,77 @@ class KeyboardView(context: Context) : View(context) {
                 placed.bounds.bottom + verticalPaddingPx,
             )
             canvas.drawRoundRect(rect, radiusPx, radiusPx, keyPaint)
+            val fg = if (accent && !isPressed(i)) colors.onAccent else colors.label
+            if (sticky == StickyState.LOCKED) {
+                keyPaint.color = fg
+                val bar = LOCK_BAR_DP * density
+                // A short underline marks a locked modifier.
+                canvas.drawRect(
+                    rect.centerX() - LOCK_BAR_HALF_WIDTH * bar,
+                    rect.bottom - LOCK_BAR_BOTTOM_GAP * bar - bar,
+                    rect.centerX() + LOCK_BAR_HALF_WIDTH * bar,
+                    rect.bottom - LOCK_BAR_BOTTOM_GAP * bar,
+                    keyPaint,
+                )
+            }
 
-            val text = labelFor(placed, shifted)
+            if (showHints && key.hint != null &&
+                !(shifted && key.action is KeyAction.Character && (key.action as KeyAction.Character).shifted != null)
+            ) {
+                hintPaint.color = if (accent) colors.onAccent else colors.secondaryLabel
+                canvas.drawText(
+                    key.hint,
+                    rect.right - HINT_INSET_DP * density,
+                    rect.top - hintPaint.ascent() + HINT_INSET_DP * density / 2,
+                    hintPaint,
+                )
+            }
+
+            if (key.action == KeyAction.Space) {
+                if (spaceLabel.isNotEmpty()) {
+                    tinyLabelPaint.color = colors.secondaryLabel
+                    drawCentered(canvas, spaceLabel, tinyLabelPaint)
+                }
+                continue
+            }
+            val text = visibleLabel(i, placed, shifted)
             if (text.isEmpty()) continue
-            val paint = if (text.length > 1) smallLabelPaint else labelPaint
-            paint.color = if (placed.key.action == KeyAction.Shift && shifted) colors.accent else colors.label
-            val baseline = rect.centerY() - (paint.descent() + paint.ascent()) / 2f
-            canvas.drawText(text, rect.centerX(), baseline, paint)
+            val paint =
+                when {
+                    text.codePointCount(0, text.length) <= 1 -> labelPaint
+                    text.length <= 2 -> smallLabelPaint
+                    key.action == KeyAction.Enter -> boldSmall
+                    else -> tinyLabelPaint
+                }
+            paint.color = fg
+            drawCentered(canvas, text, paint)
         }
+    }
+
+    private fun drawCentered(canvas: Canvas, text: String, paint: Paint) {
+        val baseline = rect.centerY() - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(text, rect.centerX(), baseline, paint)
+    }
+
+    private fun stickyState(key: Key): StickyState = when (val a = key.action) {
+        KeyAction.Shift ->
+            when (shiftState) {
+                ShiftState.OFF -> StickyState.OFF
+                ShiftState.ONCE -> StickyState.ONCE
+                ShiftState.LOCKED -> StickyState.LOCKED
+            }
+
+        is KeyAction.Mod -> modifierStates[a.modifier] ?: StickyState.OFF
+
+        is KeyAction.Layer -> if (a.target == "alpha" && activeLayer == "fn" &&
+            key.label == "Fn"
+        ) {
+            StickyState.LOCKED
+        } else {
+            StickyState.OFF
+        }
+
+        else -> StickyState.OFF
     }
 
     internal fun labelFor(placed: PlacedKey, shifted: Boolean = shiftState != ShiftState.OFF): String =
@@ -156,13 +325,14 @@ class KeyboardView(context: Context) : View(context) {
             else -> placed.key.displayLabel(shifted)
         }
 
-    private fun keyColor(placed: PlacedKey, pressed: Boolean): Int = when {
-        pressed -> colors.pressedKey
-        placed.key.action is KeyAction.Character || placed.key.action == KeyAction.Space -> colors.key
-        else -> colors.functionKey
-    }
+    private fun isPressed(index: Int): Boolean = pointers.any { it.key == index && !it.trackpad }
 
-    private fun isPressed(index: Int): Boolean = pressedByPointer.any { it == index }
+    private fun flickedHint(index: Int): String? =
+        if (pointers.any { it.key == index && it.flick }) geometry?.keys?.getOrNull(index)?.key?.hint else null
+
+    /** While swiped up, a key previews the symbol it will type. */
+    private fun visibleLabel(index: Int, placed: PlacedKey, shifted: Boolean): String =
+        flickedHint(index) ?: labelFor(placed, shifted)
 
     // Touch is handled per pointer so fast two-thumb typing never drops keys.
     // Accessibility clicks go through KeyboardAccessibilityHelper instead of
@@ -170,20 +340,32 @@ class KeyboardView(context: Context) : View(context) {
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val g = geometry ?: return false
-        val index = event.actionIndex
-        val pointerId = event.getPointerId(index)
-        val tracked = pointerId < MAX_POINTERS
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> if (tracked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                val index = event.actionIndex
+                val id = event.getPointerId(index)
+                if (id >= MAX_POINTERS) return true
+                rollover(except = id)
                 val key = g.keyIndexAt(event.getX(index), event.getY(index) - verticalPaddingPx)
-                pressedByPointer[pointerId] = key
-                if (key != NO_KEY) onKeyDown(key)
+                val p = pointers[id]
+                p.clear()
+                p.key = key
+                p.downX = event.getX(index)
+                p.downY = event.getY(index)
+                p.lastStepX = p.downX
+                if (key != NO_KEY) onKeyDown(id, key)
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> if (tracked) {
-                val key = pressedByPointer[pointerId]
-                pressedByPointer[pointerId] = NO_KEY
-                if (key != NO_KEY) onKeyUp(key)
+            MotionEvent.ACTION_MOVE ->
+                for (i in 0 until event.pointerCount) {
+                    val id = event.getPointerId(i)
+                    if (id < MAX_POINTERS) onMove(id, event.getX(i), event.getY(i))
+                }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                val index = event.actionIndex
+                val id = event.getPointerId(index)
+                if (id < MAX_POINTERS) onKeyUp(id)
             }
 
             MotionEvent.ACTION_CANCEL -> cancelAllPresses()
@@ -191,32 +373,157 @@ class KeyboardView(context: Context) : View(context) {
         return true
     }
 
-    private fun onKeyDown(index: Int) {
+    /** A new finger landed: commit keys still held by other fingers now, in order. */
+    private fun rollover(except: Int) {
         val g = geometry ?: return
-        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        if (g.keys[index].key.repeats) {
+        for (id in pointers.indices) {
+            val p = pointers[id]
+            if (id == except || p.key == NO_KEY || p.consumed || p.popup || p.trackpad) continue
+            val key = g.keys[p.key].key
+            if (key.repeats || key.action !is KeyAction.Character) continue
+            if (p.flick) key.hint?.let { listener?.onPopupText(it) } else fire(key)
+            p.consumed = true
+            if (longPressPointer == id) cancelKeyLongPress()
+        }
+    }
+
+    private fun onKeyDown(pointerId: Int, index: Int) {
+        val g = geometry ?: return
+        val key = g.keys[index].key
+        feedback()
+        if (key.repeats) {
             // Repeating keys fire on press, then repeat while held.
-            listener?.onKey(g.keys[index].key.action)
+            fire(key)
+            pointers[pointerId].consumed = true
             repeatingKey = index
             postDelayed(repeatRunnable, REPEAT_START_DELAY_MS)
+        } else if (key.popup.isNotEmpty() || key.longPress != null) {
+            cancelKeyLongPress()
+            longPressPointer = pointerId
+            postDelayed(longPressRunnable, longPressMillis)
         }
         invalidate()
     }
 
-    private fun onKeyUp(index: Int) {
+    private fun onMove(pointerId: Int, x: Float, y: Float) {
         val g = geometry ?: return
-        if (index == repeatingKey) {
-            stopRepeat()
-        } else if (!g.keys[index].key.repeats) {
-            listener?.onKey(g.keys[index].key.action)
+        val p = pointers[pointerId]
+        if (p.key == NO_KEY) return
+        val popup = popupView
+        if (p.popup && popup != null) {
+            val (ox, oy) = offsetInPopup()
+            popup.track(x + ox, y + oy)
+            return
         }
+        val key = g.keys[p.key].key
+        if (!p.flick && !p.consumed && key.hint != null && key.action is KeyAction.Character &&
+            p.downY - y > flickSlopPx
+        ) {
+            p.flick = true
+            if (longPressPointer == pointerId) cancelKeyLongPress()
+            if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            invalidate()
+            return
+        }
+        if (key.action == KeyAction.Space && !p.consumed) {
+            if (!p.trackpad && abs(x - p.downX) > swipeSlopPx) {
+                p.trackpad = true
+                p.lastStepX = x
+                if (longPressPointer == pointerId) cancelKeyLongPress()
+                invalidate()
+            }
+            if (p.trackpad) {
+                val steps = ((x - p.lastStepX) / swipeStepPx).toInt()
+                if (steps != 0) {
+                    p.lastStepX += steps * swipeStepPx
+                    listener?.onCursorSwipe(steps)
+                }
+            }
+        }
+    }
+
+    private fun onKeyUp(pointerId: Int) {
+        val g = geometry ?: return
+        val p = pointers[pointerId]
+        val index = p.key
+        if (index == NO_KEY) return
+        if (longPressPointer == pointerId) cancelKeyLongPress()
+        val key = g.keys[index].key
+        when {
+            p.popup -> {
+                val text = popupView?.selectedText()
+                popupView?.dismiss()
+                if (text != null) listener?.onPopupText(text)
+            }
+
+            index == repeatingKey -> stopRepeat()
+
+            p.consumed || p.trackpad -> Unit
+
+            p.flick -> key.hint?.let { listener?.onPopupText(it) }
+
+            else -> fire(key)
+        }
+        p.clear()
         invalidate()
+    }
+
+    private fun onLongPress() {
+        val g = geometry ?: return
+        val id = longPressPointer
+        longPressPointer = -1
+        if (id < 0) return
+        val p = pointers[id]
+        if (p.key == NO_KEY || p.consumed || p.trackpad) return
+        val placed = g.keys[p.key]
+        val key = placed.key
+        val alternatives = key.popupFor(shiftState != ShiftState.OFF)
+        val popup = popupView
+        if (alternatives.isNotEmpty() && popup != null) {
+            val (ox, oy) = offsetInPopup()
+            val b = placed.bounds
+            popup.show(
+                alternatives,
+                RectF(b.left + ox, b.top + verticalPaddingPx + oy, b.right + ox, b.bottom + verticalPaddingPx + oy),
+            )
+            p.popup = true
+            if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        } else if (key.longPress != null) {
+            p.consumed = true
+            if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            listener?.onKey(key, key.longPress)
+        }
+    }
+
+    private val loc = IntArray(2)
+
+    private fun offsetInPopup(): Pair<Float, Float> {
+        val popup = popupView ?: return 0f to 0f
+        getLocationInWindow(loc)
+        val kx = loc[0]
+        val ky = loc[1]
+        popup.getLocationInWindow(loc)
+        return (kx - loc[0]).toFloat() to (ky - loc[1]).toFloat()
+    }
+
+    private fun fire(key: Key) {
+        listener?.onKey(key, key.action)
+    }
+
+    private fun feedback() {
+        if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        if (soundEnabled) audio?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, SOUND_VOLUME)
     }
 
     /** Activates key [index] as if tapped; used by accessibility actions. */
     internal fun activateKey(index: Int) {
         val g = geometry ?: return
-        listener?.onKey(g.keys.getOrNull(index)?.key?.action ?: return)
+        fire(g.keys.getOrNull(index)?.key ?: return)
+    }
+
+    private fun cancelKeyLongPress() {
+        longPressPointer = -1
+        removeCallbacks(longPressRunnable)
     }
 
     private fun stopRepeat() {
@@ -224,9 +531,11 @@ class KeyboardView(context: Context) : View(context) {
         removeCallbacks(repeatRunnable)
     }
 
-    private fun cancelAllPresses() {
-        pressedByPointer.fill(NO_KEY)
+    fun cancelAllPresses() {
+        pointers.forEach { it.clear() }
         stopRepeat()
+        cancelKeyLongPress()
+        popupView?.dismiss()
         invalidate()
     }
 
@@ -243,12 +552,23 @@ class KeyboardView(context: Context) : View(context) {
     companion object {
         private const val NO_KEY = -1
         private const val MAX_POINTERS = 10
-        private const val ROW_HEIGHT_DP = 54f
-        private const val KEY_GAP_DP = 6f
+        private const val ROW_HEIGHT_DP = 52f
+        private const val KEY_GAP_DP = 5f
         private const val KEY_RADIUS_DP = 6f
-        private const val VERTICAL_PADDING_DP = 4f
+        private const val VERTICAL_PADDING_DP = 3f
         private const val LABEL_SP = 22f
-        private const val SMALL_LABEL_SP = 15f
+        private const val SMALL_LABEL_SP = 17f
+        private const val TINY_LABEL_SP = 13f
+        private const val HINT_SP = 10f
+        private const val HINT_INSET_DP = 4f
+        private const val LOCK_BAR_DP = 2f
+        private const val FLICK_SLOP_DP = 22f
+        private const val LOCK_BAR_HALF_WIDTH = 3f
+        private const val LOCK_BAR_BOTTOM_GAP = 1.5f
+        private const val SWIPE_STEP_DP = 10f
+        private const val SWIPE_SLOP_DP = 14f
+        private const val SOUND_VOLUME = 0.3f
+        const val DEFAULT_LONG_PRESS_MS = 300L
         private const val REPEAT_START_DELAY_MS = 400L
         private const val REPEAT_INTERVAL_MS = 50L
     }

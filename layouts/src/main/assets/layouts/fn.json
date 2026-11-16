@@ -1,0 +1,14 @@
+{
+  "id": "fn",
+  "rows": [
+    [{"code": "esc"}, {"code": "f1"}, {"code": "f2"}, {"code": "f3"}, {"code": "f4"}, {"code": "f5"}, {"code": "f6"},
+     {"code": "f7"}, {"code": "f8"}, {"code": "f9"}, {"code": "f10"}, {"code": "f11"}, {"code": "f12"}, {"code": "delete"}],
+    [{"code": "tab"}, {"code": "home"}, {"code": "up"}, {"code": "end"}, {"code": "pgup"}, {"code": "ins"},
+     "{", "}", "[", "]", "<", ">", "|", "\\"],
+    [{"t": "~", "w": 1.5}, {"code": "left"}, {"code": "down"}, {"code": "right"}, {"code": "pgdn"}, {"code": "fdel"},
+     "$", "&", "*", "#", "@", "%", {"code": "enter", "w": 1.5}],
+    [{"code": "shift", "w": 1.5}, "+", "-", "_", "=", "\"", "'", ":", "?", "!", "^", {"code": "up"}, {"code": "shift", "w": 1.5}],
+    [{"code": "ctrl", "w": 1.5}, {"code": "layer:alpha", "l": "Fn"}, {"code": "alt"}, {"code": "prtsc"},
+     {"code": "space", "w": 6.5}, {"code": "left"}, {"code": "down"}, {"code": "right"}]
+  ]
+}
