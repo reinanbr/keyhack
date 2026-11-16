@@ -360,6 +360,7 @@ private fun KeyboardSection(p: Prefs) {
                 "light" to R.string.theme_light,
                 "dark" to R.string.theme_dark,
                 "amoled" to R.string.theme_amoled,
+                "ios" to R.string.theme_ios,
             ).mapValues { stringResource(it.value) }
         Choice(
             stringResource(R.string.pref_theme),

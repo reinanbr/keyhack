@@ -86,6 +86,7 @@
   <string name="theme_light">Claro</string>
   <string name="theme_dark">Escuro</string>
   <string name="theme_amoled">Preto AMOLED</string>
+  <string name="theme_ios">iOS (claro ou escuro com o sistema)</string>
   <string name="layout_qwerty">QWERTY</string>
   <string name="layout_abnt2">ABNT2 (Brasil, com ç)</string>
   <string name="layout_azerty">AZERTY</string>

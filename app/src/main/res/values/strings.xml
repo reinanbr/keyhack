@@ -85,6 +85,7 @@
   <string name="theme_light">Light</string>
   <string name="theme_dark">Dark</string>
   <string name="theme_amoled">AMOLED black</string>
+  <string name="theme_ios">iOS (light or dark with the system)</string>
   <string name="layout_qwerty">QWERTY</string>
   <string name="layout_abnt2">ABNT2 (Brazil, with ç)</string>
   <string name="layout_azerty">AZERTY</string>

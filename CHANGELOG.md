@@ -34,6 +34,9 @@ All notable changes to KeyHack are listed here. The format follows
 - One-handed mode: the ✋ button in the toolbar narrows the keyboard to one
   side; the column beside it moves it to the other side (⇄) or back to full
   width (⤢). Also in settings.
+- iOS theme: iPhone keyboard colors (light or dark with the system), rounder
+  and more spaced keys with a shadow underneath, blue return key, no corner
+  symbols (swiping up still types them).
 
 ### Fixed
 

@@ -58,7 +58,8 @@ install; use it only for testing.
   for the next key, twice to lock) sent as real key events, so Ctrl+C works in
   Termux; PC mode switches on automatically in terminal and SSH apps.
 - **Gboard side:** long-press accents and symbols, space-bar cursor trackpad,
-  key-press preview, one-handed mode,
+  key-press preview, one-handed mode, themes (light, dark, AMOLED,
+  Material You, iOS),
   QWERTY, ABNT2, AZERTY, Dvorak and Colemak layouts (JSON, documented in
   [`layouts/README.md`](layouts/README.md)); English and Brazilian Portuguese
   dictionaries with autocorrect (undo with backspace), completions,
@@ -135,7 +136,7 @@ autocorrect, no learning, no clipboard capture and no snippet expansion
 :clipboard    opt-in encrypted history                           (M4)
 :security     Keystore crypto, validators, MIME                  (M1+)
 :data         settings
-:theme        themes, Material You
+:theme        themes (Material You, iOS), key shapes
 :core         shared utilities (JSON)
 tools/        generators for the dictionary and emoji assets
 build-logic/  convention plugins and the manifest policy gate
@@ -193,7 +194,7 @@ the diff:
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets, command palette | partial |
 | M8 | Glide typing | |
-| M9 | Floating/one-handed modes, theme editor, backup export, `offline` flavor without network, F-Droid | |
+| M9 | Floating mode (one-handed ✅), theme editor, backup export, `offline` flavor without network, F-Droid | |
 
 ## Contributing and security
 

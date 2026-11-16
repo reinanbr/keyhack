@@ -16,6 +16,8 @@ data class KeyboardColors(
     @param:ColorInt val accent: Int,
     @param:ColorInt val accentKey: Int,
     @param:ColorInt val onAccent: Int,
+    /** Drawn just below each key (iOS style); 0 = no shadow. */
+    @param:ColorInt val keyShadow: Int = 0,
 ) {
     /** True when labels are light, i.e. a dark theme. */
     val isDark: Boolean get() = luminance(label) > luminance(background)
@@ -24,9 +26,60 @@ data class KeyboardColors(
     private fun luminance(c: Int): Int = (c shr 16 and 0xff) * 3 + (c shr 8 and 0xff) * 6 + (c and 0xff)
 }
 
-/** Built-in themes. "system" follows the device's dark mode; "dynamic" uses Material You on Android 12+. */
+/** Geometry and type of the keys, which a theme can change along with its colors. */
+data class KeyboardShape(
+    val keyRadiusDp: Float = 6f,
+    val keyGapDp: Float = 5f,
+    /** Main label size; smaller labels scale with it. */
+    val labelSp: Float = 22f,
+    /** Small symbols in the key corners (what a swipe up types). */
+    val cornerHints: Boolean = true,
+    /** Height of the shadow under each key, drawn in [KeyboardColors.keyShadow]. */
+    val keyShadowDp: Float = 0f,
+)
+
+/**
+ * Built-in themes. "system" follows the device's dark mode; "dynamic" uses
+ * Material You on Android 12+; "ios" is the iPhone keyboard look (light or
+ * dark with the system).
+ */
 object KeyboardThemes {
-    val ids = listOf("system", "dynamic", "light", "dark", "amoled")
+    val ids = listOf("system", "dynamic", "light", "dark", "amoled", "ios")
+
+    val DEFAULT_SHAPE = KeyboardShape()
+
+    /** iPhone proportions: rounder, more spaced keys with a hairline shadow and no corner hints. */
+    val IOS_SHAPE = KeyboardShape(keyRadiusDp = 5f, keyGapDp = 6f, labelSp = 23f, cornerHints = false, keyShadowDp = 1f)
+
+    val IOS_LIGHT =
+        KeyboardColors(
+            background = 0xFFD1D4D9.toInt(),
+            key = 0xFFFFFFFF.toInt(),
+            functionKey = 0xFFADB3BC.toInt(),
+            pressedKey = 0xFFBFC4CC.toInt(),
+            label = 0xFF000000.toInt(),
+            secondaryLabel = 0xFF6E6E73.toInt(),
+            accent = 0xFF007AFF.toInt(),
+            accentKey = 0xFF007AFF.toInt(),
+            onAccent = 0xFFFFFFFF.toInt(),
+            keyShadow = 0xFF898A8D.toInt(),
+        )
+
+    val IOS_DARK =
+        KeyboardColors(
+            background = 0xFF262628.toInt(),
+            key = 0xFF5C5C5F.toInt(),
+            functionKey = 0xFF3A3A3C.toInt(),
+            pressedKey = 0xFF77777B.toInt(),
+            label = 0xFFFFFFFF.toInt(),
+            secondaryLabel = 0xFFA1A1A6.toInt(),
+            accent = 0xFF0A84FF.toInt(),
+            accentKey = 0xFF0A84FF.toInt(),
+            onAccent = 0xFFFFFFFF.toInt(),
+            keyShadow = 0xFF0B0B0C.toInt(),
+        )
+
+    fun shape(id: String): KeyboardShape = if (id == "ios") IOS_SHAPE else DEFAULT_SHAPE
 
     val LIGHT =
         KeyboardColors(
@@ -75,6 +128,7 @@ object KeyboardThemes {
             "light" -> LIGHT
             "dark" -> DARK
             "amoled" -> AMOLED
+            "ios" -> if (night) IOS_DARK else IOS_LIGHT
             "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) dynamic(context, night) else system(night)
             else -> system(night)
         }

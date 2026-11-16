@@ -23,6 +23,7 @@ import com.reinanbr.keyhack.keyboard.model.StickyState
 import com.reinanbr.keyhack.keyboard.model.displayLabel
 import com.reinanbr.keyhack.keyboard.model.popupFor
 import com.reinanbr.keyhack.theme.KeyboardColors
+import com.reinanbr.keyhack.theme.KeyboardShape
 import com.reinanbr.keyhack.theme.KeyboardThemes
 import kotlin.math.abs
 
@@ -108,6 +109,15 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
+    /** Key geometry and label size from the theme. */
+    var shape: KeyboardShape = KeyboardThemes.DEFAULT_SHAPE
+        set(value) {
+            if (field == value) return
+            field = value
+            applyShape()
+            rebuildGeometry()
+        }
+
     var showHints: Boolean = true
         set(value) {
             field = value
@@ -137,8 +147,9 @@ class KeyboardView(context: Context) : View(context) {
         private set
 
     private val density = resources.displayMetrics.density
-    private val gapPx = KEY_GAP_DP * density
-    private val radiusPx = KEY_RADIUS_DP * density
+    private var gapPx = shape.keyGapDp * density
+    private var radiusPx = shape.keyRadiusDp * density
+    private var shadowPx = shape.keyShadowDp * density
     private val verticalPaddingPx = VERTICAL_PADDING_DP * density
     private val swipeStepPx = SWIPE_STEP_DP * density
     private val swipeSlopPx = SWIPE_SLOP_DP * density
@@ -151,16 +162,27 @@ class KeyboardView(context: Context) : View(context) {
     private val labelPaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textAlign = Paint.Align.CENTER
-            textSize = sp(LABEL_SP)
+            textSize = sp(shape.labelSp)
         }
-    private val smallLabelPaint = Paint(labelPaint).apply { textSize = sp(SMALL_LABEL_SP) }
-    private val tinyLabelPaint = Paint(labelPaint).apply { textSize = sp(TINY_LABEL_SP) }
+    private val smallLabelPaint = Paint(labelPaint).apply { textSize = sp(shape.labelSp * SMALL_LABEL_RATIO) }
+    private val tinyLabelPaint = Paint(labelPaint).apply { textSize = sp(shape.labelSp * TINY_LABEL_RATIO) }
     private val hintPaint =
         Paint(labelPaint).apply {
             textSize = sp(HINT_SP)
             textAlign = Paint.Align.RIGHT
         }
     private val boldSmall = Paint(smallLabelPaint).apply { typeface = Typeface.DEFAULT_BOLD }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private fun applyShape() {
+        gapPx = shape.keyGapDp * density
+        radiusPx = shape.keyRadiusDp * density
+        shadowPx = shape.keyShadowDp * density
+        labelPaint.textSize = sp(shape.labelSp)
+        smallLabelPaint.textSize = sp(shape.labelSp * SMALL_LABEL_RATIO)
+        tinyLabelPaint.textSize = sp(shape.labelSp * TINY_LABEL_RATIO)
+        boldSmall.textSize = smallLabelPaint.textSize
+    }
     private val rect = RectF()
     private val audio = context.getSystemService(AudioManager::class.java)
 
@@ -250,20 +272,7 @@ class KeyboardView(context: Context) : View(context) {
             val key = placed.key
             val sticky = stickyState(key)
             val accent = sticky != StickyState.OFF || key.action == KeyAction.Enter
-            keyPaint.color =
-                when {
-                    isPressed(i) -> colors.pressedKey
-                    accent -> colors.accentKey
-                    key.isFunction -> colors.functionKey
-                    else -> colors.key
-                }
-            rect.set(
-                placed.bounds.left,
-                placed.bounds.top + verticalPaddingPx,
-                placed.bounds.right,
-                placed.bounds.bottom + verticalPaddingPx,
-            )
-            canvas.drawRoundRect(rect, radiusPx, radiusPx, keyPaint)
+            drawKeyBackground(canvas, placed, isPressed(i), accent)
             val fg = if (accent && !isPressed(i)) colors.onAccent else colors.label
             if (sticky == StickyState.LOCKED) {
                 keyPaint.color = fg
@@ -278,17 +287,7 @@ class KeyboardView(context: Context) : View(context) {
                 )
             }
 
-            if (showHints && key.hint != null &&
-                !(shifted && key.action is KeyAction.Character && (key.action as KeyAction.Character).shifted != null)
-            ) {
-                hintPaint.color = if (accent) colors.onAccent else colors.secondaryLabel
-                canvas.drawText(
-                    key.hint,
-                    rect.right - HINT_INSET_DP * density,
-                    rect.top - hintPaint.ascent() + HINT_INSET_DP * density / 2,
-                    hintPaint,
-                )
-            }
+            drawHint(canvas, key, shifted, accent)
 
             if (key.action == KeyAction.Space) {
                 if (spaceLabel.isNotEmpty()) {
@@ -309,6 +308,46 @@ class KeyboardView(context: Context) : View(context) {
             paint.color = fg
             drawCentered(canvas, text, paint)
         }
+    }
+
+    /** The key's rounded rectangle (and its shadow, if the shape has one); leaves its bounds in [rect]. */
+    private fun drawKeyBackground(canvas: Canvas, placed: PlacedKey, pressed: Boolean, accent: Boolean) {
+        val key = placed.key
+        keyPaint.color =
+            when {
+                pressed -> colors.pressedKey
+                accent -> colors.accentKey
+                key.isFunction -> colors.functionKey
+                else -> colors.key
+            }
+        rect.set(
+            placed.bounds.left,
+            placed.bounds.top + verticalPaddingPx,
+            placed.bounds.right,
+            placed.bounds.bottom + verticalPaddingPx,
+        )
+        if (shadowPx > 0f && colors.keyShadow != 0) {
+            shadowPaint.color = colors.keyShadow
+            rect.offset(0f, shadowPx)
+            canvas.drawRoundRect(rect, radiusPx, radiusPx, shadowPaint)
+            rect.offset(0f, -shadowPx)
+        }
+        canvas.drawRoundRect(rect, radiusPx, radiusPx, keyPaint)
+    }
+
+    /** The swipe-up symbol in the key's corner, unless the shape hides hints or Shift changes the key. */
+    private fun drawHint(canvas: Canvas, key: Key, shifted: Boolean, accent: Boolean) {
+        val hint = key.hint ?: return
+        if (!showHints || !shape.cornerHints) return
+        val action = key.action
+        if (shifted && action is KeyAction.Character && action.shifted != null) return
+        hintPaint.color = if (accent) colors.onAccent else colors.secondaryLabel
+        canvas.drawText(
+            hint,
+            rect.right - HINT_INSET_DP * density,
+            rect.top - hintPaint.ascent() + HINT_INSET_DP * density / 2,
+            hintPaint,
+        )
     }
 
     private fun drawCentered(canvas: Canvas, text: String, paint: Paint) {
@@ -610,12 +649,9 @@ class KeyboardView(context: Context) : View(context) {
         private const val NO_KEY = -1
         private const val MAX_POINTERS = 10
         private const val ROW_HEIGHT_DP = 52f
-        private const val KEY_GAP_DP = 5f
-        private const val KEY_RADIUS_DP = 6f
         private const val VERTICAL_PADDING_DP = 3f
-        private const val LABEL_SP = 22f
-        private const val SMALL_LABEL_SP = 17f
-        private const val TINY_LABEL_SP = 13f
+        private const val SMALL_LABEL_RATIO = 17f / 22f
+        private const val TINY_LABEL_RATIO = 13f / 22f
         private const val HINT_SP = 10f
         private const val HINT_INSET_DP = 4f
         private const val LOCK_BAR_DP = 2f

@@ -292,6 +292,7 @@ class KeyHackImeService :
             soundEnabled = settings.sound
             longPressMillis = settings.longPressMs.toLong()
             keyPreview = settings.keyPreview
+            shape = KeyboardThemes.shape(settings.theme)
         }
         oneHandBar?.applyColors(colors)
         applyOneHanded()
