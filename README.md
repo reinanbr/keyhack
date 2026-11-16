@@ -40,6 +40,12 @@ sha256sum -c SHA256SUMS
 apksigner verify --print-certs KeyHack-<version>.apk
 ```
 
+Release APKs are signed with this certificate (SHA-256):
+
+```
+b8:3e:34:bf:da:19:40:6e:e8:10:75:ac:d7:83:b6:37:75:3c:8f:4b:64:bd:7a:87:d7:97:95:ef:eb:1b:e9:a1
+```
+
 Every commit to `main` also produces a debug APK under the CI run's
 artifacts. It is signed with a throwaway key, so it cannot update a release
 install; use it only for testing.
