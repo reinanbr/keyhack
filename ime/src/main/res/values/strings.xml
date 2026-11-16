@@ -29,4 +29,6 @@
   <string name="keyhack_msg_incognito_off">Incognito off</string>
   <string name="keyhack_msg_select_first">Select text first (or type a word before the cursor)</string>
   <string name="keyhack_msg_failed">That didn\'t work on this text</string>
+  <string name="keyhack_one_hand_switch">Move keyboard to the other side</string>
+  <string name="keyhack_one_hand_full">Full-width keyboard</string>
 </resources>

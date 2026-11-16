@@ -33,6 +33,10 @@ class KeyHackSettings(context: Context) {
     val heightPercent: Int get() = prefs.getInt(HEIGHT, DEFAULT_HEIGHT)
     val longPressMs: Int get() = prefs.getInt(LONG_PRESS, DEFAULT_LONG_PRESS)
     val theme: String get() = str(THEME, "system")
+    val keyPreview: Boolean get() = bool(KEY_PREVIEW, true)
+
+    /** One-handed mode: "off", "left" or "right" (the side the keyboard sits on). */
+    val oneHanded: String get() = str(ONE_HANDED, ONE_HANDED_OFF).takeIf { it in ONE_HANDED_SIDES } ?: ONE_HANDED_OFF
     val haptics: Boolean get() = bool(HAPTICS, true)
     val sound: Boolean get() = bool(SOUND, false)
 
@@ -74,6 +78,10 @@ class KeyHackSettings(context: Context) {
         const val LONG_PRESS = "long_press_ms"
         const val THEME = "theme"
         const val HAPTICS = "haptics"
+        const val KEY_PREVIEW = "key_preview"
+        const val ONE_HANDED = "one_handed"
+        const val ONE_HANDED_OFF = "off"
+        val ONE_HANDED_SIDES = listOf(ONE_HANDED_OFF, "left", "right")
         const val SOUND = "sound"
         const val SUGGESTIONS = "suggestions"
         const val AUTOCORRECT = "autocorrect"

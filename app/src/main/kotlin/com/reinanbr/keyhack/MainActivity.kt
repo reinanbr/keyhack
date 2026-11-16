@@ -366,17 +366,37 @@ private fun KeyboardSection(p: Prefs) {
             p.string(K.THEME, "system"),
             themes,
         ) { v -> p.set { putString(K.THEME, v) } }
-        SwitchRow(
-            stringResource(R.string.pref_haptics),
-            null,
-            p.bool(K.HAPTICS, true),
-        ) { p.set { putBoolean(K.HAPTICS, it) } }
-        SwitchRow(
-            stringResource(R.string.pref_sound),
-            null,
-            p.bool(K.SOUND, false),
-        ) { p.set { putBoolean(K.SOUND, it) } }
+        FeedbackRows(p)
     }
+}
+
+/** Key preview, one-handed mode, vibration and sound. */
+@Composable
+private fun FeedbackRows(p: Prefs) {
+    SwitchRow(
+        stringResource(R.string.pref_key_preview),
+        null,
+        p.bool(K.KEY_PREVIEW, true),
+    ) { p.set { putBoolean(K.KEY_PREVIEW, it) } }
+    Choice(
+        stringResource(R.string.pref_one_handed),
+        p.string(K.ONE_HANDED, K.ONE_HANDED_OFF),
+        mapOf(
+            K.ONE_HANDED_OFF to R.string.one_handed_off,
+            "left" to R.string.one_handed_left,
+            "right" to R.string.one_handed_right,
+        ).mapValues { stringResource(it.value) },
+    ) { v -> p.set { putString(K.ONE_HANDED, v) } }
+    SwitchRow(
+        stringResource(R.string.pref_haptics),
+        null,
+        p.bool(K.HAPTICS, true),
+    ) { p.set { putBoolean(K.HAPTICS, it) } }
+    SwitchRow(
+        stringResource(R.string.pref_sound),
+        null,
+        p.bool(K.SOUND, false),
+    ) { p.set { putBoolean(K.SOUND, it) } }
 }
 
 @Composable

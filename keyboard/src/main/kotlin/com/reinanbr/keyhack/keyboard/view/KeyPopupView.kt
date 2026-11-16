@@ -13,7 +13,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Overlay that draws long-press alternatives above a key. It never takes
+ * Overlay that draws long-press alternatives and the key-press preview
+ * balloon above a key. It never takes
  * touches: the gesture stays with [KeyboardView], which moves the selection.
  * It must be placed over the whole input view so popups for the top row can
  * extend above the keyboard (over the suggestion strip).
@@ -41,6 +42,32 @@ class KeyPopupView(context: Context) : View(context) {
             textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, TEXT_SP, resources.displayMetrics)
         }
     private val cell = RectF()
+
+    // Key-press preview: the pressed key's label, enlarged above it.
+    private var preview: String? = null
+    private val balloon = RectF()
+    private val previewPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, PREVIEW_SP, resources.displayMetrics)
+        }
+
+    /** Shows [label] in a balloon above the key at [anchor] (this view's coordinates). */
+    fun showPreview(label: String, anchor: RectF) {
+        preview = label
+        val w = max(anchor.width() * PREVIEW_WIDTH, MIN_CELL_DP * density)
+        val h = anchor.height() * PREVIEW_HEIGHT
+        val left = (anchor.centerX() - w / 2f).coerceIn(0f, max(0f, width - w))
+        val bottom = anchor.top - PADDING_DP * density
+        balloon.set(left, max(0f, bottom - h), left + w, max(h, bottom))
+        invalidate()
+    }
+
+    fun hidePreview() {
+        if (preview == null) return
+        preview = null
+        invalidate()
+    }
 
     val isShowing: Boolean get() = items.isNotEmpty()
 
@@ -91,6 +118,8 @@ class KeyPopupView(context: Context) : View(context) {
     }
 
     override fun onDraw(canvas: Canvas) {
+        val label = preview
+        if (items.isEmpty() && label != null) drawPreview(canvas, label)
         if (items.isEmpty()) return
         val r = RADIUS_DP * density
         panelPaint.color = colors.key
@@ -113,7 +142,20 @@ class KeyPopupView(context: Context) : View(context) {
         }
     }
 
+    private fun drawPreview(canvas: Canvas, label: String) {
+        val r = RADIUS_DP * density
+        panelPaint.color = colors.key
+        panelPaint.setShadowLayer(SHADOW_DP * density, 0f, density, SHADOW_COLOR)
+        canvas.drawRoundRect(balloon, r, r, panelPaint)
+        previewPaint.color = colors.label
+        val baseline = balloon.centerY() - (previewPaint.descent() + previewPaint.ascent()) / 2f
+        canvas.drawText(label, balloon.centerX(), baseline, previewPaint)
+    }
+
     companion object {
+        private const val PREVIEW_SP = 30f
+        private const val PREVIEW_WIDTH = 1.25f
+        private const val PREVIEW_HEIGHT = 1.15f
         private const val MAX_COLUMNS = 8
         private const val MIN_CELL_DP = 36f
         private const val PADDING_DP = 4f

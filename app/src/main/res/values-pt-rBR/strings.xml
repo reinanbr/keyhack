@@ -50,6 +50,11 @@
   <string name="pref_long_press">Tempo do toque longo</string>
   <string name="pref_theme">Tema</string>
   <string name="pref_haptics">Vibrar ao tocar</string>
+  <string name="pref_key_preview">Ampliar a tecla tocada</string>
+  <string name="pref_one_handed">Modo uma mão</string>
+  <string name="one_handed_off">Desligado</string>
+  <string name="one_handed_left">Esquerda</string>
+  <string name="one_handed_right">Direita</string>
   <string name="pref_sound">Som ao tocar</string>
 
   <string name="pref_suggestions">Mostrar sugestões</string>

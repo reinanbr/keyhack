@@ -58,6 +58,7 @@ install; use it only for testing.
   for the next key, twice to lock) sent as real key events, so Ctrl+C works in
   Termux; PC mode switches on automatically in terminal and SSH apps.
 - **Gboard side:** long-press accents and symbols, space-bar cursor trackpad,
+  key-press preview, one-handed mode,
   QWERTY, ABNT2, AZERTY, Dvorak and Colemak layouts (JSON, documented in
   [`layouts/README.md`](layouts/README.md)); English and Brazilian Portuguese
   dictionaries with autocorrect (undo with backspace), completions,

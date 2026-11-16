@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -29,6 +30,7 @@ import com.reinanbr.keyhack.ime.ui.EmojiPanel
 import com.reinanbr.keyhack.ime.ui.EmojiStore
 import com.reinanbr.keyhack.ime.ui.GifPanel
 import com.reinanbr.keyhack.ime.ui.GifStrip
+import com.reinanbr.keyhack.ime.ui.OneHandBar
 import com.reinanbr.keyhack.ime.ui.StickerPanel
 import com.reinanbr.keyhack.ime.ui.StripView
 import com.reinanbr.keyhack.ime.ui.ToolsPanel
@@ -96,6 +98,7 @@ class KeyHackImeService :
     private var content: FrameLayout? = null
     private var keyboardView: KeyboardView? = null
     private var popup: KeyPopupView? = null
+    private var oneHandBar: OneHandBar? = null
     private var emojiPanel: EmojiPanel? = null
     private var gifPanel: GifPanel? = null
     private var toolsPanel: ToolsPanel? = null
@@ -195,6 +198,7 @@ class KeyHackImeService :
             kv,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
+        val handBar = addOneHandBar(frame, kv)
         val column = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
         column.addView(
             stripView,
@@ -240,6 +244,7 @@ class KeyHackImeService :
         gifStrip = liveGifs
         content = frame
         keyboardView = kv
+        oneHandBar = handBar
         popup = overlay
         emojiPanel = null
         gifPanel = null
@@ -248,6 +253,25 @@ class KeyHackImeService :
         settingsChanged = true
         panel = Panel.KEYBOARD
         return rootView
+    }
+
+    /** The one-handed mode column, hidden until the mode is on (see [applyOneHanded]). */
+    private fun addOneHandBar(frame: FrameLayout, kv: KeyboardView): OneHandBar {
+        val bar = OneHandBar(this).also {
+            it.visibility = View.GONE
+            it.listener = OneHandBar.Listener(::onOneHandAction)
+            it.setDescriptions(getString(R.string.keyhack_one_hand_switch), getString(R.string.keyhack_one_hand_full))
+        }
+        frame.addView(bar, FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // FrameLayout stretches a match_parent child only when it has two, so the
+        // bar copies the keyboard's height instead.
+        kv.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
+            val h = bottom - top
+            if (h > 0 && bar.layoutParams.height != h) {
+                bar.post { bar.layoutParams = bar.layoutParams.also { it.height = h } }
+            }
+        }
+        return bar
     }
 
     private fun navBarInset(insets: WindowInsets): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -267,7 +291,10 @@ class KeyHackImeService :
             hapticsEnabled = settings.haptics
             soundEnabled = settings.sound
             longPressMillis = settings.longPressMs.toLong()
+            keyPreview = settings.keyPreview
         }
+        oneHandBar?.applyColors(colors)
+        applyOneHanded()
         strip?.colors = colors
         searchResults?.colors = colors
         popup?.colors = colors
@@ -943,6 +970,7 @@ class KeyHackImeService :
         add(StripView.Item("tools", "</>", bold = true))
         add(StripView.Item("mode", "DEV", bold = true, accent = advanced))
         if (advanced) add(StripView.Item("pc", if (pcMode) "ABC" else "PC", bold = true, accent = pcMode))
+        add(StripView.Item("onehand", "✋", accent = settings.oneHanded != KeyHackSettings.ONE_HANDED_OFF))
         add(StripView.Item("incognito", "🕶", accent = incognito))
         add(StripView.Item("settings", "⚙", large = true))
         add(StripView.Item("hide", "⌄", large = true))
@@ -970,6 +998,8 @@ class KeyHackImeService :
             id == "pc" -> togglePc()
 
             id == "mode" -> toggleMode()
+
+            id == "onehand" -> toggleOneHanded()
 
             id == "incognito" -> {
                 incognito = !incognito
@@ -1067,13 +1097,68 @@ class KeyHackImeService :
             toolsPanel?.applyColors(colors)
             stickerPanel?.applyColors(colors)
         }
-        if (p == Panel.EMOJI) emojiPanel?.refresh()
-        if (p == Panel.STICKER) {
-            stickerPanel?.emoji = stickerEmoji()
-            stickerPanel?.refresh()
-        }
         view.visibility = View.VISIBLE
+        afterPanelShown(p)
+    }
+
+    private fun afterPanelShown(p: Panel) {
+        when (p) {
+            Panel.EMOJI -> emojiPanel?.refresh()
+
+            Panel.STICKER -> {
+                stickerPanel?.emoji = stickerEmoji()
+                stickerPanel?.refresh()
+            }
+
+            Panel.KEYBOARD -> applyOneHanded()
+
+            else -> Unit
+        }
         strip?.visibility = if (p == Panel.KEYBOARD) View.VISIBLE else View.GONE
+    }
+
+    /** Narrows the keyboard to one side, with [OneHandBar] in the space left over. */
+    private fun applyOneHanded() {
+        val kv = keyboardView ?: return
+        val bar = oneHandBar ?: return
+        val side = settings.oneHanded
+        val kvParams = kv.layoutParams as FrameLayout.LayoutParams
+        val barParams = bar.layoutParams as FrameLayout.LayoutParams
+        if (side == KeyHackSettings.ONE_HANDED_OFF) {
+            kvParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            kvParams.gravity = Gravity.NO_GRAVITY
+            bar.visibility = View.GONE
+        } else {
+            val full = resources.displayMetrics.widthPixels
+            val keys = (full * ONE_HAND_FRACTION).toInt()
+            val left = side == "left"
+            kvParams.width = keys
+            kvParams.gravity = if (left) Gravity.START else Gravity.END
+            barParams.width = full - keys
+            barParams.gravity = if (left) Gravity.END else Gravity.START
+            bar.visibility = if (panel == Panel.KEYBOARD) View.VISIBLE else View.GONE
+        }
+        kv.layoutParams = kvParams
+        bar.layoutParams = barParams
+    }
+
+    private fun onOneHandAction(action: String) {
+        val side = settings.oneHanded
+        val next =
+            when (action) {
+                OneHandBar.SWITCH_SIDE -> if (side == "left") "right" else "left"
+                else -> KeyHackSettings.ONE_HANDED_OFF
+            }
+        settings.edit { putString(KeyHackSettings.ONE_HANDED, next) }
+        applyOneHanded()
+    }
+
+    /** Toolbar button: one-handed on the right (most people's thumb) or back to full width. */
+    private fun toggleOneHanded() {
+        val next = if (settings.oneHanded == KeyHackSettings.ONE_HANDED_OFF) "right" else KeyHackSettings.ONE_HANDED_OFF
+        settings.edit { putString(KeyHackSettings.ONE_HANDED, next) }
+        applyOneHanded()
+        renderStrip()
     }
 
     private fun currentGifProvider(): GifProvider? =
@@ -1471,6 +1556,7 @@ class KeyHackImeService :
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64
         private const val EMOJI_SLOT_WEIGHT = 0.8f
+        private const val ONE_HAND_FRACTION = 0.82f
 
         // "... before previous" at the end of the text; group 1 is empty when only one word is there.
         private val LAST_WORDS = Regex("(?:([\\p{L}'’-]+)\\s+)?([\\p{L}'’-]+)\\s*$")

@@ -28,4 +28,6 @@
   <string name="keyhack_msg_incognito_off">Modo anônimo desligado</string>
   <string name="keyhack_msg_select_first">Selecione um texto primeiro (ou digite uma palavra antes do cursor)</string>
   <string name="keyhack_msg_failed">Não funcionou com este texto</string>
+  <string name="keyhack_one_hand_switch">Mover o teclado para o outro lado</string>
+  <string name="keyhack_one_hand_full">Teclado na largura toda</string>
 </resources>

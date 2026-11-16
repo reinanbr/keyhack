@@ -28,6 +28,12 @@ All notable changes to KeyHack are listed here. The format follows
   and 🫆 appear even where the phone's own font is older; emoji the font
   cannot draw are hidden. Emoji stickers use the same font. Older Android
   versions keep the system emoji.
+- Key-press preview: the character you press appears enlarged above your
+  finger (and shows the symbol a swipe-up will type). It can be turned off
+  in settings.
+- One-handed mode: the ✋ button in the toolbar narrows the keyboard to one
+  side; the column beside it moves it to the other side (⇄) or back to full
+  width (⤢). Also in settings.
 
 ### Fixed
 

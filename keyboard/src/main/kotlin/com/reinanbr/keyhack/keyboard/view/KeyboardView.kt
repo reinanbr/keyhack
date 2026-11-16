@@ -122,6 +122,13 @@ class KeyboardView(context: Context) : View(context) {
             requestLayout()
         }
 
+    /** Show the pressed character enlarged above the key (needs [popupView]). */
+    var keyPreview: Boolean = true
+        set(value) {
+            field = value
+            if (!value) hidePreview()
+        }
+
     var hapticsEnabled: Boolean = true
     var soundEnabled: Boolean = false
     var longPressMillis: Long = DEFAULT_LONG_PRESS_MS
@@ -196,6 +203,9 @@ class KeyboardView(context: Context) : View(context) {
 
     /** Pointer holding the Shift key, or -1. */
     private var shiftPointer = -1
+
+    /** The finger whose key the preview balloon shows, or -1. */
+    private var previewPointer = -1
     private val longPressRunnable = Runnable { onLongPress() }
 
     private val accessibilityHelper = KeyboardAccessibilityHelper(this)
@@ -415,7 +425,30 @@ class KeyboardView(context: Context) : View(context) {
             longPressPointer = pointerId
             postDelayed(longPressRunnable, longPressMillis)
         }
+        updatePreview(pointerId)
         invalidate()
+    }
+
+    /** Balloon over the key under [pointerId]: characters only, and what a flick would type. */
+    private fun updatePreview(pointerId: Int) {
+        val g = geometry ?: return
+        val popup = popupView ?: return
+        val p = pointers[pointerId]
+        if (!keyPreview || p.key == NO_KEY || p.popup || p.trackpad) return
+        val placed = g.keys[p.key]
+        if (placed.key.action !is KeyAction.Character) return
+        val (ox, oy) = offsetInPopup()
+        val b = placed.bounds
+        popup.showPreview(
+            visibleLabel(p.key, placed, shiftState != ShiftState.OFF),
+            RectF(b.left + ox, b.top + verticalPaddingPx + oy, b.right + ox, b.bottom + verticalPaddingPx + oy),
+        )
+        previewPointer = pointerId
+    }
+
+    private fun hidePreview() {
+        previewPointer = -1
+        popupView?.hidePreview()
     }
 
     private fun onMove(pointerId: Int, x: Float, y: Float) {
@@ -435,6 +468,7 @@ class KeyboardView(context: Context) : View(context) {
             p.flick = true
             if (longPressPointer == pointerId) cancelKeyLongPress()
             if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            if (previewPointer == pointerId) updatePreview(pointerId)
             invalidate()
             return
         }
@@ -462,6 +496,7 @@ class KeyboardView(context: Context) : View(context) {
         if (index == NO_KEY) return
         if (longPressPointer == pointerId) cancelKeyLongPress()
         if (shiftPointer == pointerId) releaseShift()
+        if (previewPointer == pointerId) hidePreview()
         val key = g.keys[index].key
         when {
             p.popup -> {
@@ -501,6 +536,7 @@ class KeyboardView(context: Context) : View(context) {
                 RectF(b.left + ox, b.top + verticalPaddingPx + oy, b.right + ox, b.bottom + verticalPaddingPx + oy),
             )
             p.popup = true
+            if (previewPointer == id) hidePreview()
             if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         } else if (key.longPress != null) {
             p.consumed = true
@@ -555,6 +591,7 @@ class KeyboardView(context: Context) : View(context) {
         pointers.forEach { it.clear() }
         stopRepeat()
         cancelKeyLongPress()
+        hidePreview()
         popupView?.dismiss()
         invalidate()
     }

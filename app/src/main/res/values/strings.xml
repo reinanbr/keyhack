@@ -49,6 +49,11 @@
   <string name="pref_long_press">Long-press delay</string>
   <string name="pref_theme">Theme</string>
   <string name="pref_haptics">Vibrate on key press</string>
+  <string name="pref_key_preview">Enlarge the pressed key</string>
+  <string name="pref_one_handed">One-handed mode</string>
+  <string name="one_handed_off">Off</string>
+  <string name="one_handed_left">Left</string>
+  <string name="one_handed_right">Right</string>
   <string name="pref_sound">Sound on key press</string>
 
   <string name="pref_suggestions">Show suggestions</string>
