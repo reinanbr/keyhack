@@ -12,7 +12,7 @@ Every keyboard can read everything you type, so KeyHack is built to be
 learning that stores word counts only, and a single, auditable network use
 (GIF search).
 
-> **Status: 0.1.0, first public preview.** See the [changelog](CHANGELOG.md)
+> **Status: 0.2.0, public preview.** See the [changelog](CHANGELOG.md)
 > and the [roadmap](#roadmap).
 
 <p>

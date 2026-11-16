@@ -7,6 +7,8 @@ All notable changes to KeyHack are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 ### Added
 
 - Shift can be held: keys typed with another finger while Shift is down come
@@ -38,6 +40,11 @@ All notable changes to KeyHack are listed here. The format follows
 - iOS theme: iPhone keyboard colors (light or dark with the system), rounder
   and more spaced keys with a shadow underneath, blue return key, no corner
   symbols (swiping up still types them).
+
+### Changed
+
+- The APK grew from 3.8 MB to about 10 MB: 5 MB is the emoji font, 1.3 MB
+  the next-word models.
 
 ### Fixed
 
@@ -85,5 +92,6 @@ First public preview.
 - No analytics, crash reporting or telemetry; no cloud backup; release builds
   strip logging.
 
-[Unreleased]: https://github.com/reinanbr/keyhack/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/reinanbr/keyhack/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/reinanbr/keyhack/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/reinanbr/keyhack/releases/tag/v0.1.0

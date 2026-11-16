@@ -9,8 +9,8 @@ android {
 
     defaultConfig {
         applicationId = "com.reinanbr.keyhack"
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     // Stored uncompressed so the emoji font is memory-mapped, not inflated into RAM.
