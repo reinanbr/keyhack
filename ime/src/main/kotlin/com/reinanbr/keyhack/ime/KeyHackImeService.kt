@@ -11,8 +11,8 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
-import android.view.WindowInsets
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
@@ -246,13 +246,12 @@ class KeyHackImeService :
         return rootView
     }
 
-    private fun navBarInset(insets: WindowInsets): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.tappableElement()).bottom
-        } else {
-            @Suppress("DEPRECATION") // The only API before Android 11.
-            insets.systemWindowInsetBottom
-        }
+    private fun navBarInset(insets: WindowInsets): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.tappableElement()).bottom
+    } else {
+        @Suppress("DEPRECATION") // The only API before Android 11.
+        insets.systemWindowInsetBottom
+    }
 
     private fun applySettings() {
         settingsChanged = false
