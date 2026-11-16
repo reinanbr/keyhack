@@ -27,7 +27,8 @@ learning that stores word counts only, and a single, auditable network use
   dictionaries with autocorrect (undo with backspace), completions and
   next-word prediction; emoji with categories, recents, skin tones and
   EN/PT search; kaomoji; GIF search (results update as you type) with your own Giphy API key;
-  stickers: import your images or send any emoji as a WhatsApp sticker.
+  stickers: import your images (GIFs become animated stickers) or send any
+  emoji as a WhatsApp sticker.
 - **Dev tools:** case conversions (camelCase, snake_case…), Base64, URL and
   HTML escaping, JSON pretty/minify, MD5/SHA hashes, UUID v4/v7, timestamps.
 - **Privacy controls:** incognito mode; nothing learned or suggested in
@@ -135,7 +136,7 @@ the diff:
 | M2 | PC mode: full layout, sticky modifiers, dev row, per-app PC mode | ✅ |
 | M3 | Dictionaries, autocorrect, prediction, count-only learning, incognito | ✅ |
 | M4 | Emoji ✅, opt-in encrypted clipboard history | partial |
-| M5 | Stickers: import ✅, emoji stickers ✅, commitContent to WhatsApp ✅; GIF→animated WebP, WhatsApp sticker packs | partial |
+| M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅; WhatsApp sticker packs | partial |
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets, command palette | partial |
 | M8 | Glide typing | |

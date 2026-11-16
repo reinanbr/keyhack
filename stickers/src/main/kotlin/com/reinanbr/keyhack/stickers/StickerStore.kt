@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.Movie
 import android.graphics.Paint
 import android.graphics.Rect
 import android.net.Uri
@@ -23,7 +24,9 @@ import java.security.MessageDigest
  *
  * Imported images are untrusted: the input is size-capped, decoded by the
  * platform decoder with subsampling, and re-encoded, so the original bytes
- * never leave this class.
+ * never leave this class. An animated GIF becomes an animated WebP sticker
+ * (WhatsApp: at most 500 KB and 10 s); if it cannot fit, its first frame is
+ * used as a still sticker.
  */
 class StickerStore(context: Context) {
     private val app = context.applicationContext
@@ -45,6 +48,13 @@ class StickerStore(context: Context) {
     /** Imports one image from [uri] (photo picker). Blocking: call off the main thread. */
     fun import(uri: Uri): Result<File> = runCatching {
         val bytes = readCapped(uri)
+        dir.mkdirs()
+        val animated = if (isGif(bytes)) animatedSticker(bytes) else null
+        if (animated != null) {
+            val out = File(dir, "a_${System.currentTimeMillis()}_${(bytes.contentHashCode().toLong() and MASK)}$EXT")
+            writeAtomic(out, animated)
+            return@runCatching out
+        }
         val source = ImageDecoder.createSource(ByteBuffer.wrap(bytes))
         val bitmap =
             ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
@@ -53,7 +63,6 @@ class StickerStore(context: Context) {
             }
         val sticker = toCanvas(bitmap)
         bitmap.recycle()
-        dir.mkdirs()
         val out = File(dir, "s_${System.currentTimeMillis()}_${(bytes.contentHashCode().toLong() and MASK)}$EXT")
         writeAtomic(out, encode(sticker))
         sticker.recycle()
@@ -102,6 +111,65 @@ class StickerStore(context: Context) {
                 out.write(buf, 0, n)
             }
             out.toByteArray()
+        }
+    }
+
+    private fun isGif(b: ByteArray) = b.size > GIF_MAGIC.size && GIF_MAGIC.indices.all { b[it] == GIF_MAGIC[it] }
+
+    /** An animated WebP of the GIF, or null when it is still, too big to decode, or cannot fit the limit. */
+    @Suppress("DEPRECATION") // Movie is the platform's only frame-by-frame GIF decoder (Skia).
+    private fun animatedSticker(bytes: ByteArray): ByteArray? {
+        val movie = Movie.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        val w = movie.width()
+        val h = movie.height()
+        if (w <= 0 || h <= 0 || w.toLong() * h > MAX_GIF_PIXELS || movie.duration() <= 0) return null
+        val duration = minOf(movie.duration(), MAX_ANIMATION_MS)
+        // Fewer frames per second and lower quality until it fits.
+        return ANIMATION_LADDER.firstNotNullOfOrNull { (interval, quality) ->
+            renderAnimation(movie, duration, interval, quality)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun renderAnimation(movie: Movie, duration: Int, interval: Int, quality: Int): ByteArray? {
+        val size = StickerGeometry.SIZE
+        val box = StickerGeometry.fit(movie.width(), movie.height())
+        var cur = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        var prev = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        val frames = ArrayList<AnimatedWebp.Frame>()
+        var total = 0
+        try {
+            var t = 0
+            while (t < duration) {
+                cur.eraseColor(0)
+                val canvas = Canvas(cur)
+                canvas.translate(box.left.toFloat(), box.top.toFloat())
+                canvas.scale(box.width.toFloat() / movie.width(), box.height.toFloat() / movie.height())
+                movie.setTime(t)
+                movie.draw(canvas, 0f, 0f, paint)
+                val step = minOf(interval, duration - t)
+                if (frames.isNotEmpty() && cur.sameAs(prev)) {
+                    // Unchanged picture: show the previous frame longer instead of storing it again.
+                    val last = frames.removeAt(frames.lastIndex)
+                    frames += AnimatedWebp.Frame(last.webp, last.durationMs + step)
+                } else {
+                    val out = ByteArrayOutputStream()
+                    cur.compress(webpFormat(), quality, out)
+                    total += out.size()
+                    if (total > StickerGeometry.MAX_ANIMATED_BYTES) return null
+                    frames += AnimatedWebp.Frame(out.toByteArray(), step)
+                    val swap = prev
+                    prev = cur
+                    cur = swap
+                }
+                t += interval
+            }
+            if (frames.size < 2) return null
+            return AnimatedWebp.mux(frames, size, size).takeIf { it.size <= StickerGeometry.MAX_ANIMATED_BYTES }
+        } finally {
+            cur.recycle()
+            prev.recycle()
         }
     }
 
@@ -155,5 +223,14 @@ class StickerStore(context: Context) {
         private const val QUALITY_STEP = 10
         private const val EMOJI_SCALE = 0.8f
         private const val MASK = 0xffffffffL
+        private val GIF_MAGIC = "GIF8".toByteArray(Charsets.US_ASCII)
+
+        /** Movie draws from a full-size frame buffer: 2048x2048 ARGB is 16 MB. */
+        private const val MAX_GIF_PIXELS = 2048L * 2048L
+        private const val MAX_ANIMATION_MS = 10_000
+
+        /** (ms between frames, WebP quality), tried in order. */
+        private val ANIMATION_LADDER =
+            listOf(80 to 70, 100 to 60, 100 to 45, 125 to 40, 160 to 35, 200 to 30, 250 to 25)
     }
 }

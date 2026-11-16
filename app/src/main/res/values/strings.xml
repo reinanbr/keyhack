@@ -18,7 +18,7 @@
   <string name="section_pc">PC / Hacker mode</string>
   <string name="section_gif">GIFs</string>
   <string name="section_stickers">Stickers</string>
-  <string name="stickers_body">Import your own images; they become WhatsApp-style stickers (512×512 WebP). Any emoji can also be sent as a sticker from the keyboard\'s 🖼 button. Images stay on this device.</string>
+  <string name="stickers_body">Import your own images; they become WhatsApp-style stickers (512×512 WebP), and GIFs become animated stickers. Any emoji can also be sent as a sticker from the keyboard\'s 🖼 button. Images stay on this device.</string>
   <plurals name="stickers_count">
     <item quantity="one">%1$d sticker</item>
     <item quantity="other">%1$d stickers</item>

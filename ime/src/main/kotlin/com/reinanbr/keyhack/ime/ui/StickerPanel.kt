@@ -1,7 +1,8 @@
 package com.reinanbr.keyhack.ime.ui
 
 import android.content.Context
-import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
 import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
@@ -156,11 +157,21 @@ class StickerPanel(context: Context, private val store: StickerStore) : LinearLa
                     val path = item.file.path
                     if (iv.tag != path) {
                         iv.tag = path
+                        (iv.drawable as? AnimatedImageDrawable)?.stop()
                         iv.setImageDrawable(null)
                         io.execute {
-                            val opts = BitmapFactory.Options().apply { inSampleSize = THUMB_SAMPLE }
-                            val bmp = BitmapFactory.decodeFile(path, opts)
-                            main.post { if (iv.tag == path) iv.setImageBitmap(bmp) }
+                            // ImageDecoder plays animated WebP stickers (imported GIFs).
+                            val drawable =
+                                runCatching {
+                                    ImageDecoder.decodeDrawable(ImageDecoder.createSource(File(path))) { d, _, _ ->
+                                        d.setTargetSize(THUMB_PX, THUMB_PX)
+                                    }
+                                }.getOrNull()
+                            main.post {
+                                if (iv.tag != path) return@post
+                                iv.setImageDrawable(drawable)
+                                (drawable as? AnimatedImageDrawable)?.start()
+                            }
                         }
                     }
                     iv
@@ -181,6 +192,6 @@ class StickerPanel(context: Context, private val store: StickerStore) : LinearLa
         const val EMOJI_SP = 44f
         const val COLUMNS = 4
         const val PAD_DP = 6f
-        const val THUMB_SAMPLE = 2
+        const val THUMB_PX = 256
     }
 }

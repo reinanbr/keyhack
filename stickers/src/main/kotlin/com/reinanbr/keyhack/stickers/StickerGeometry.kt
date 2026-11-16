@@ -12,6 +12,9 @@ object StickerGeometry {
     /** WhatsApp's limit for a static sticker file. */
     const val MAX_BYTES = 100_000
 
+    /** WhatsApp's limit for an animated sticker file. */
+    const val MAX_ANIMATED_BYTES = 500_000
+
     /** Blank border kept around the image, as WhatsApp recommends. */
     const val MARGIN = 16
 

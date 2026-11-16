@@ -19,6 +19,13 @@ and a parser for untrusted files (any image format the user picks).
   1024 px per side in memory), drawn onto a 512×512 transparent canvas and
   re-encoded as WebP under 100 KB. The original bytes are never stored or
   shared.
+- **Animated GIFs** become animated WebP stickers (WhatsApp: 512×512, at most
+  500 KB and 10 s). Frames come from the platform GIF decoder
+  (`android.graphics.Movie`, Skia), refused above 2048×2048 px, sampled every
+  80–250 ms and each encoded by `Bitmap.compress`. Android cannot write
+  animated WebP, so `AnimatedWebp` builds the RIFF container (VP8X, ANIM,
+  ANMF) by hand; repeated frames are merged. When the result cannot fit, the
+  first frame is imported as a still sticker.
 - **Storage:** `filesDir/stickers` (imported) and `cacheDir/stickers` (emoji
   stickers, regenerated on demand). Both are app-private and excluded from
   backup (`allowBackup="false"`, data extraction rules).
@@ -39,6 +46,6 @@ and a parser for untrusted files (any image format the user picks).
 
 ## Consequences
 
-- Animated stickers and WhatsApp sticker packs (the `ContentProvider` that
+- WhatsApp sticker packs (the `ContentProvider` that
   WhatsApp's "Add to WhatsApp" flow needs) are not covered; packs would add an
   exported provider and need their own ADR.
