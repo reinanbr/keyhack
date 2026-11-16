@@ -206,9 +206,10 @@ class SuggestionEngine(
         val scores = HashMap<String, Float>()
         val pairs = if (before != null) ngrams.map { it.afterPair(before, previous) } else emptyList()
         val anyPair = pairs.any { it.isNotEmpty() }
+        val languageWeights = languageWeights(previous)
         for ((i, model) in ngrams.withIndex()) {
             val pair = pairs.getOrNull(i).orEmpty()
-            val weight = if (anyPair && pair.isEmpty()) OTHER_LANGUAGE else 1f
+            val weight = if (anyPair && pair.isEmpty()) OTHER_LANGUAGE else languageWeights[i]
             val best = HashMap<String, Float>()
             for ((w, s) in pair) best[w] = s * TRIGRAM_WEIGHT
             for ((w, s) in model.after(previous)) best[w] = maxOf(best[w] ?: 0f, s.toFloat())
@@ -237,9 +238,24 @@ class SuggestionEngine(
     private fun contextBonus(before: String?, previous: String?, word: String): Float {
         if (previous == null) return 0f
         val user = history.pairCount(previous, word).coerceAtMost(PAIR_CAP) * PAIR_BONUS
-        val corpus = ngrams.maxOfOrNull { it.score(before, previous, word) } ?: 0
+        val weights = languageWeights(previous)
+        val corpus = ngrams.withIndex().maxOfOrNull { (i, m) -> m.score(before, previous, word) * weights[i] } ?: 0f
         return user + corpus * CONTEXT_WEIGHT / NgramModel.MAX_SCORE
     }
+
+    /**
+     * Per model, how much its language owns [previous]: full weight where the
+     * word is about as common as in the language that uses it most, less
+     * elsewhere ("boa" is Portuguese, so English's "boa constrictor" waits).
+     */
+    private fun languageWeights(previous: String): List<Float> {
+        val key = Dictionary.key(previous)
+        val freqs = ngrams.map { m -> dictionaries.firstOrNull { it.language == m.language }?.freqOf(key) ?: 0 }
+        val best = freqs.maxOrNull() ?: 0
+        return freqs.map { if (it >= best - LANGUAGE_MARGIN) 1f else OTHER_LANGUAGE }
+    }
+
+    private fun Dictionary.freqOf(key: String): Int = lookup(key).let { if (it < 0) 0 else freqs[it] }
 
     /** Plain weighted edit distance, for the (small) user word list. */
     private fun weightedDistance(a: String, b: String, cap: Float): Float {
@@ -288,6 +304,7 @@ class SuggestionEngine(
         private const val CONTEXT_WEIGHT = 80f
         private const val TRIGRAM_WEIGHT = 1.15f
         private const val OTHER_LANGUAGE = 0.5f
+        private const val LANGUAGE_MARGIN = 30
         private const val USER_PREDICTIONS = 5
         private const val USER_PREDICTION_BASE = 150f
         private const val USER_PREDICTION_STEP = 40f

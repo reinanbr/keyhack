@@ -15,7 +15,8 @@ All notable changes to KeyHack are listed here. The format follows
 - Next-word prediction from conversation sentences (Tatoeba, English and
   Portuguese): after "eu te" it offers "amo", after "how are" it offers
   "you". It uses the last two words, and words you often type after another
-  still come first.
+  still come first. A model only leads after words of its own language
+  ("boa" predicts "ideia", not English "constrictor").
 - The words before the cursor also rank suggestions while you type
   ("eu te am" offers "amo" before "americano").
 - Chat words are no longer autocorrected: vc, kkk, blz, vlw, hj, obg, lol,

@@ -73,7 +73,9 @@ class Suggester(context: Context) {
         chat?.use { Dictionary.read(language, main, it) } ?: Dictionary.read(language, main)
     }
 
-    private fun loadNgrams(language: String): NgramModel? = readAsset("ngram/$language.ngram", NgramModel::read)
+    private fun loadNgrams(language: String): NgramModel? = readAsset(
+        "ngram/$language.ngram",
+    ) { NgramModel.read(it, language) }
 
     fun setKeyCenters(centers: Map<Char, Pair<Float, Float>>) {
         worker.post { engine.costs = EditCosts(centers) }

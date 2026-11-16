@@ -11,7 +11,11 @@ import java.io.BufferedReader
  * Rows stay as text until asked for, so loading is one pass and memory stays
  * close to the file size.
  */
-class NgramModel private constructor(private val rows: HashMap<String, String>) {
+class NgramModel private constructor(
+    /** Language code ("pt", "en"); matches [Dictionary.language]. */
+    val language: String,
+    private val rows: HashMap<String, String>,
+) {
     val size: Int get() = rows.size
 
     /** Likely next words after "[before] [previous]" (trigram), best first. */
@@ -41,14 +45,14 @@ class NgramModel private constructor(private val rows: HashMap<String, String>) 
     companion object {
         const val MAX_SCORE = 255
 
-        fun read(reader: BufferedReader): NgramModel {
+        fun read(reader: BufferedReader, language: String = ""): NgramModel {
             val rows = HashMap<String, String>(INITIAL)
             reader.forEachLine { line ->
                 if (line.isEmpty() || line.startsWith("#")) return@forEachLine
                 val tab = line.indexOf('\t')
                 if (tab > 0) rows[line.substring(0, tab)] = line.substring(tab + 1)
             }
-            return NgramModel(rows)
+            return NgramModel(language, rows)
         }
 
         private const val INITIAL = 1 shl 16

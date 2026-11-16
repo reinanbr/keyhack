@@ -138,7 +138,7 @@ class SuggestionEngineTest {
         val shippedNgrams: Map<String, NgramModel> by lazy {
             listOf("en", "pt").associateWith { lang ->
                 GZIPInputStream(File("src/main/assets/ngram/$lang.ngram.gz").inputStream()).bufferedReader()
-                    .use(NgramModel::read)
+                    .use { NgramModel.read(it, lang) }
             }
         }
     }

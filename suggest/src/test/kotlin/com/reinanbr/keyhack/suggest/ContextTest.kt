@@ -52,6 +52,18 @@ class ContextTest {
     }
 
     @Test
+    fun oneWordContextPrefersItsLanguage() {
+        // "boa" is common Portuguese and rare English ("boa constrictor").
+        for (e in listOf(engine("en", "pt"), engine("pt", "en"))) {
+            val words = predicted(e, "boa")
+            assertFalse("constrictor" in words, words.toString())
+            assertTrue("ideia" in words || "noite" in words, words.toString())
+        }
+        // Words common in both languages keep both models.
+        assertTrue("you" in predicted(engine("pt", "en"), "are"))
+    }
+
+    @Test
     fun userHabitsComeFirst() {
         val h = UserHistory()
         repeat(2) { h.learn("pizza", "boa") }
