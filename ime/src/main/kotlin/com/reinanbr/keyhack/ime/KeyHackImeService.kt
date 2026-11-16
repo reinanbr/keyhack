@@ -23,6 +23,7 @@ import com.reinanbr.keyhack.data.KeyHackSettings
 import com.reinanbr.keyhack.devtools.DevTool
 import com.reinanbr.keyhack.devtools.TextTransforms
 import com.reinanbr.keyhack.emoji.EmojiData
+import com.reinanbr.keyhack.emoji.EmojiFont
 import com.reinanbr.keyhack.ime.ui.EditAction
 import com.reinanbr.keyhack.ime.ui.EmojiPanel
 import com.reinanbr.keyhack.ime.ui.EmojiStore
@@ -871,14 +872,14 @@ class KeyHackImeService :
         val items = ArrayList<StripView.Item>()
         items += StripView.Item("toolbar", "‹", weight = 0.5f, large = true, dim = true)
         for (w in words) items += StripView.Item("w:" + w.word, w.label, weight = 1.5f, bold = w.bold)
-        emojiForComposing()?.let { items += StripView.Item("x:$it", it, weight = EMOJI_SLOT_WEIGHT, large = true) }
+        emojiForComposing()?.let { items += StripView.Item("x:$it", it, weight = EMOJI_SLOT_WEIGHT, emoji = true) }
         s.show(items, withDividers = true)
     }
 
     /** An emoji for the word being typed ("amor" -> ❤️), preferring ones the user sends often. */
     private fun emojiForComposing(): String? {
         if (composing.isEmpty() || !policy.suggestions) return null
-        val found = emojiData?.forWord(composing.toString()).orEmpty()
+        val found = emojiData?.forWord(composing.toString()).orEmpty().filter { EmojiFont.canDraw(this, it.value) }
         if (found.isEmpty()) return null
         val recents = emojiStore.recents()
         val toned = found.map { it.withTone(emojiStore.tone(it.value)) }
@@ -1164,7 +1165,7 @@ class KeyHackImeService :
             val file = runCatching {
                 when (sticker) {
                     is StickerPanel.Sticker.Image -> sticker.file
-                    is StickerPanel.Sticker.Emoji -> stickers.emojiSticker(sticker.text)
+                    is StickerPanel.Sticker.Emoji -> stickers.emojiSticker(sticker.text, EmojiFont.typeface(this))
                 }
             }.getOrNull()
             main.post {

@@ -15,6 +15,7 @@ import android.widget.GridView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.reinanbr.keyhack.emoji.EmojiFont
 import com.reinanbr.keyhack.ime.R
 import com.reinanbr.keyhack.stickers.StickerStore
 import com.reinanbr.keyhack.theme.KeyboardColors
@@ -145,6 +146,7 @@ class StickerPanel(context: Context, private val store: StickerStore) : LinearLa
                     val tv = convertView as? TextView ?: TextView(context).apply { gravity = Gravity.CENTER }
                     tv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, h)
                     tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, EMOJI_SP)
+                    tv.typeface = EmojiFont.typeface(context)
                     tv.text = item.text
                     tv
                 }

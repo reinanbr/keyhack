@@ -23,6 +23,11 @@ All notable changes to KeyHack are listed here. The format follows
 - An emoji for the word being typed appears at the end of the suggestion
   bar ("amor" ❤️, "kkk" 😂, "pizza" 🍕); tapping it keeps the word and adds
   the emoji.
+- Emoji come from the bundled Noto Color Emoji font (Unicode 17.0, the same
+  version WhatsApp shows) on Android 12 and later, so new emoji such as 🫩
+  and 🫆 appear even where the phone's own font is older; emoji the font
+  cannot draw are hidden. Emoji stickers use the same font. Older Android
+  versions keep the system emoji.
 
 ### Fixed
 

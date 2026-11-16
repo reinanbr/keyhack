@@ -12,6 +12,11 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+
+    // Stored uncompressed so the emoji font is memory-mapped, not inflated into RAM.
+    androidResources {
+        noCompress += "ttf"
+    }
 }
 
 // Threat model: the keyboard must not be able to leak keystrokes through

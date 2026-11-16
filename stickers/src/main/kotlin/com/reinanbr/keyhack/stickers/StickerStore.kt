@@ -7,6 +7,7 @@ import android.graphics.ImageDecoder
 import android.graphics.Movie
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
@@ -69,9 +70,13 @@ class StickerStore(context: Context) {
         out
     }
 
-    /** A sticker of [emoji], drawn once and cached. Blocking: call off the main thread. */
-    fun emojiSticker(emoji: String): File {
-        val name = MessageDigest.getInstance("SHA-1").digest(emoji.toByteArray())
+    /**
+     * A sticker of [emoji] drawn with [typeface] (null = system font), drawn
+     * once and cached. Blocking: call off the main thread.
+     */
+    fun emojiSticker(emoji: String, typeface: Typeface? = null): File {
+        val font = if (typeface == null) "" else "n"
+        val name = MessageDigest.getInstance("SHA-1").digest((font + emoji).toByteArray())
             .joinToString("") { "%02x".format(it) }
         val file = File(emojiDir, "e_$name$EXT")
         if (file.isFile) return file
@@ -80,6 +85,7 @@ class StickerStore(context: Context) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textAlign = Paint.Align.CENTER
             textSize = size * EMOJI_SCALE
+            this.typeface = typeface
         }
         // Shrink until the glyph fits inside the margins (flags and ZWJ sequences are wide).
         val box = (size - 2 * StickerGeometry.MARGIN).toFloat()

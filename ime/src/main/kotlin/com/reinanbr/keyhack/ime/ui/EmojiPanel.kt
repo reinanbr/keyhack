@@ -1,7 +1,6 @@
 package com.reinanbr.keyhack.ime.ui
 
 import android.content.Context
-import android.graphics.Paint
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -12,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.reinanbr.keyhack.emoji.Emoji
 import com.reinanbr.keyhack.emoji.EmojiData
+import com.reinanbr.keyhack.emoji.EmojiFont
 import com.reinanbr.keyhack.emoji.Kaomoji
 import com.reinanbr.keyhack.theme.KeyboardColors
 
@@ -44,9 +44,9 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
     private var tab = TAB_RECENT
     private var toneFor: Emoji? = null
     private var colors: KeyboardColors? = null
-    private val glyphPaint = Paint()
 
     // Declared before init: init reads them (property initializers run in order).
+    private val emojiFace = EmojiFont.typeface(context)
     private val tabIcons =
         listOf(
             TAB_RECENT to "🕘", "smileys" to "😀", "people" to "👋", "nature" to "🐻", "food" to "🍔",
@@ -56,8 +56,6 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
 
     private var entries: List<String> = emptyList()
     private var emojiEntries: List<Emoji?> = emptyList()
-
-    private val glyphCache = HashMap<String, Boolean>()
 
     init {
         orientation = VERTICAL
@@ -102,7 +100,11 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
     }
 
     private fun showTabs() {
-        tabs.show(tabIcons.map { (id, icon) -> StripView.Item(id, icon, accent = id == tab) })
+        tabs.show(
+            tabIcons.map { (id, icon) ->
+                StripView.Item(id, icon, accent = id == tab, emoji = id != TAB_KAOMOJI && id != TAB_TEXT_SYMBOLS)
+            },
+        )
     }
 
     private fun onTab(id: String) {
@@ -144,8 +146,8 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         }
     }
 
-    /** Hides emoji the system font cannot draw (newer than this Android version). */
-    private fun renders(e: Emoji): Boolean = glyphCache.getOrPut(e.value) { glyphPaint.hasGlyph(e.value) }
+    /** Hides emoji the emoji font cannot draw (newer than Unicode 17, or than this Android version). */
+    private fun renders(e: Emoji): Boolean = EmojiFont.canDraw(context, e.value)
 
     private fun setEntries(list: List<Pair<String, Emoji?>>, wide: Boolean) {
         entries = list.map { it.first }
@@ -171,7 +173,7 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
                 StripView.Item(
                     "tone:$t",
                     e.withTone(t),
-                    large = true,
+                    emoji = true,
                     accent = store.tone(e.value) == t,
                 )
             } +
@@ -199,6 +201,7 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
             val d = resources.displayMetrics.density
             tv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (CELL_HEIGHT_DP * d).toInt())
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (wide) WIDE_TEXT_SP else EMOJI_SP)
+            tv.typeface = if (wide) null else emojiFace
             colors?.let { tv.setTextColor(it.label) }
             tv.text = entries[position]
             return tv

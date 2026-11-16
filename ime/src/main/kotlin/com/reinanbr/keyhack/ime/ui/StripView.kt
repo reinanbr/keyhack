@@ -12,6 +12,7 @@ import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import com.reinanbr.keyhack.emoji.EmojiFont
 import com.reinanbr.keyhack.theme.KeyboardColors
 import com.reinanbr.keyhack.theme.KeyboardThemes
 
@@ -32,6 +33,8 @@ class StripView(context: Context, private val heightDp: Float = DEFAULT_HEIGHT_D
         val accent: Boolean = false,
         val dim: Boolean = false,
         val large: Boolean = false,
+        /** Drawn with the emoji font (large). */
+        val emoji: Boolean = false,
     )
 
     var listener: Listener? = null
@@ -59,6 +62,7 @@ class StripView(context: Context, private val heightDp: Float = DEFAULT_HEIGHT_D
         }
     private val boldPaint = TextPaint(textPaint).apply { typeface = Typeface.DEFAULT_BOLD }
     private val largePaint = TextPaint(textPaint).apply { textSize = sp(LARGE_SP) }
+    private val emojiPaint = TextPaint(largePaint).apply { typeface = EmojiFont.typeface(context) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
 
@@ -101,6 +105,7 @@ class StripView(context: Context, private val heightDp: Float = DEFAULT_HEIGHT_D
             }
             val paint =
                 when {
+                    item.emoji -> emojiPaint
                     item.large -> largePaint
                     item.bold -> boldPaint
                     else -> textPaint
