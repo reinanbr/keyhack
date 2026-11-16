@@ -10,8 +10,9 @@ import android.os.Build
 /**
  * The bundled Noto Color Emoji font (Unicode 17.0, the version WhatsApp
  * supports), so every phone shows the same, current emoji. It is a COLRv1
- * font, which Android draws from 12 (API 31); older versions keep the system
- * emoji font. Characters the font lacks fall back to the system font.
+ * font, which Android draws from 13 (API 33); older versions keep the system
+ * emoji font. (Android 12 loads it and reports its glyphs but draws
+ * nothing.) Characters the font lacks fall back to the system font.
  *
  * The font is also the version cap: [canDraw] hides emoji it cannot draw, so
  * nothing newer than what WhatsApp shows is offered.
@@ -43,9 +44,9 @@ object EmojiFont {
         return synchronized(drawable) { drawable.getOrPut(emoji) { probe.hasGlyph(emoji) } }
     }
 
-    // COLRv1 needs Android 12; Font.Builder itself needs 10.
+    // COLRv1 rendering needs Android 13; Font.Builder itself needs 10.
     private fun load(context: Context): Typeface? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
         return runCatching {
             val font = Font.Builder(context.applicationContext.assets, PATH).build()
             Typeface.CustomFallbackBuilder(FontFamily.Builder(font).build())

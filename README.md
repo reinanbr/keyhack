@@ -66,7 +66,7 @@ install; use it only for testing.
   chat words (vc, kkk, lol) and next-word prediction that uses the last two
   words (trained on [Tatoeba](https://tatoeba.org) sentences, then on what
   you type); emoji suggested for the word you type; Unicode 17 emoji from
-  the bundled Noto Color Emoji font (Android 12+); emoji with categories, recents, skin tones and
+  the bundled Noto Color Emoji font (Android 13+); emoji with categories, recents, skin tones and
   EN/PT search; kaomoji; GIF search (results update as you type) with your own Giphy API key;
   stickers: import your images (GIFs become animated stickers) or send any
   emoji as a WhatsApp sticker.
