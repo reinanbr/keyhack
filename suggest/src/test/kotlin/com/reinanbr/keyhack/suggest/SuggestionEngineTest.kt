@@ -126,9 +126,19 @@ class SuggestionEngineTest {
     companion object {
         val shipped: Map<String, Dictionary> by lazy {
             listOf("en", "pt").associateWith { lang ->
-                GZIPInputStream(File("src/main/assets/dict/$lang.dict.gz").inputStream()).bufferedReader().use {
-                    Dictionary.read(lang, it)
+                GZIPInputStream(File("src/main/assets/dict/$lang.dict.gz").inputStream()).bufferedReader().use { main ->
+                    File(
+                        "src/main/assets/dict/$lang.chat",
+                    ).bufferedReader().use { chat -> Dictionary.read(lang, main, chat) }
                 }
+            }
+        }
+
+        /** The shipped next-word models, as the app loads them. */
+        val shippedNgrams: Map<String, NgramModel> by lazy {
+            listOf("en", "pt").associateWith { lang ->
+                GZIPInputStream(File("src/main/assets/ngram/$lang.ngram.gz").inputStream()).bufferedReader()
+                    .use(NgramModel::read)
             }
         }
     }

@@ -12,6 +12,17 @@ All notable changes to KeyHack are listed here. The format follows
 - Shift can be held: keys typed with another finger while Shift is down come
   out shifted, and lifting it turns Shift off. A tap still shifts the next
   letter and a double tap still locks caps.
+- Next-word prediction from conversation sentences (Tatoeba, English and
+  Portuguese): after "eu te" it offers "amo", after "how are" it offers
+  "you". It uses the last two words, and words you often type after another
+  still come first.
+- The words before the cursor also rank suggestions while you type
+  ("eu te am" offers "amo" before "americano").
+- Chat words are no longer autocorrected: vc, kkk, blz, vlw, hj, obg, lol,
+  idk, btw, gonna and others.
+- An emoji for the word being typed appears at the end of the suggestion
+  bar ("amor" ❤️, "kkk" 😂, "pizza" 🍕); tapping it keeps the word and adds
+  the emoji.
 
 ### Fixed
 

@@ -121,6 +121,9 @@ class KeyHackImeService :
     private var predictions: List<Candidate> = emptyList()
     private var stripShowsToolbar = true
     private var previousWord: String? = null
+
+    /** The word before [previousWord], for two-word context ("eu te" -> "amo"). */
+    private var beforeWord: String? = null
     private var previousWordStale = true
     private var revert: Revert? = null
     private var autoSpace = false
@@ -560,6 +563,8 @@ class KeyHackImeService :
         shift.onCharacterCommitted()
         if (text in SENTENCE_END) {
             previousWord = null
+            beforeWord = null
+            beforeWord = null
         } else if (!hadWord) {
             previousWordStale = true
         }
@@ -588,6 +593,8 @@ class KeyHackImeService :
             ic.deleteSurroundingText(1, 0)
             ic.commitText(". ", 1)
             previousWord = null
+            beforeWord = null
+            beforeWord = null
             revert = null
         } else {
             ic.commitText(" ", 1)
@@ -667,6 +674,7 @@ class KeyHackImeService :
         autoSpace = false
         revert = null
         previousWord = null
+        beforeWord = null
         when (val enter = policy.enter) {
             is EnterBehavior.Action -> ic.performEditorAction(enter.actionId)
 
@@ -767,7 +775,7 @@ class KeyHackImeService :
         val prev = previousWord()
         var out = typed
         if (autocorrect && policy.autocorrect) {
-            val s = if (suggestions.typed == typed) suggestions else suggester.suggestNow(typed, prev)
+            val s = if (suggestions.typed == typed) suggestions else suggester.suggestNow(typed, prev, beforeWord)
             s?.autoCorrection?.let { out = it }
         }
         // Clear state before touching the editor: commitText may call back into
@@ -776,18 +784,20 @@ class KeyHackImeService :
         ownEdit { ic?.commitText(out + separator, 1) }
         revert = if (out != typed) Revert(typed, out, separator) else null
         if (policy.learning) suggester.learn(out, prev)
+        beforeWord = prev
         previousWord = out
         previousWordStale = false
     }
 
+    /** The word before the cursor (and, in [beforeWord], the one before it), re-read from the editor when stale. */
     private fun previousWord(): String? {
         if (!previousWordStale) return previousWord
         previousWordStale = false
         val before = currentInputConnection?.getTextBeforeCursor(PREVIOUS_LOOKBACK, 0)?.toString().orEmpty()
         val text = before.dropLast(composing.length)
-        previousWord = Regex(
-            "([\\p{L}'’-]+)\\s*$",
-        ).find(text)?.groupValues?.get(1)?.takeIf { !text.trimEnd().endsWithAny(SENTENCE_END) }
+        val words = LAST_WORDS.find(text)?.takeIf { !text.trimEnd().endsWithAny(SENTENCE_END) }
+        previousWord = words?.groupValues?.get(2)
+        beforeWord = words?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
         return previousWord
     }
 
@@ -796,7 +806,7 @@ class KeyHackImeService :
     private fun requestSuggestions() {
         val typed = composing.toString()
         val prev = previousWord()
-        suggester.suggest(typed, prev) { s ->
+        suggester.suggest(typed, prev, beforeWord) { s ->
             if (composing.toString() != s.typed) return@suggest
             suggestions = s
             stripShowsToolbar = false
@@ -824,7 +834,7 @@ class KeyHackImeService :
         renderStrip()
         val prev = previousWord
         if (policy.suggestions && composing.isEmpty() && prev != null && !previousWordStale) {
-            suggester.predict(prev) { p ->
+            suggester.predict(prev, beforeWord) { p ->
                 if (composing.isNotEmpty() || p.isEmpty()) return@predict
                 predictions = p
                 stripShowsToolbar = false
@@ -861,7 +871,36 @@ class KeyHackImeService :
         val items = ArrayList<StripView.Item>()
         items += StripView.Item("toolbar", "‹", weight = 0.5f, large = true, dim = true)
         for (w in words) items += StripView.Item("w:" + w.word, w.label, weight = 1.5f, bold = w.bold)
+        emojiForComposing()?.let { items += StripView.Item("x:$it", it, weight = EMOJI_SLOT_WEIGHT, large = true) }
         s.show(items, withDividers = true)
+    }
+
+    /** An emoji for the word being typed ("amor" -> ❤️), preferring ones the user sends often. */
+    private fun emojiForComposing(): String? {
+        if (composing.isEmpty() || !policy.suggestions) return null
+        val found = emojiData?.forWord(composing.toString()).orEmpty()
+        if (found.isEmpty()) return null
+        val recents = emojiStore.recents()
+        val toned = found.map { it.withTone(emojiStore.tone(it.value)) }
+        return toned.minByOrNull { e -> recents.indexOf(e).let { if (it < 0) Int.MAX_VALUE else it } }
+    }
+
+    /** Keeps the typed word and adds the emoji after it: "amor ❤️ ". */
+    private fun pickEmojiSuggestion(emoji: String) {
+        val ic = currentInputConnection ?: return
+        val word = composing.toString()
+        val prev = previousWord()
+        resetComposing(finish = false)
+        ownEdit { ic.commitText("$word $emoji ", 1) }
+        if (policy.learning && word.isNotEmpty()) suggester.learn(word, prev)
+        emojiStore.addRecent(emoji)
+        previousWord = null
+        beforeWord = null
+        previousWordStale = false
+        revert = null
+        autoSpace = true
+        updateAutoCaps()
+        showDefaultStrip()
     }
 
     private data class WordSlot(val word: String, val bold: Boolean, val label: String = word)
@@ -912,6 +951,8 @@ class KeyHackImeService :
         when {
             id.startsWith("w:") -> pickWord(id.substring(2))
 
+            id.startsWith("x:") -> pickEmojiSuggestion(id.substring(2))
+
             id == "toolbar" -> {
                 stripShowsToolbar = true
                 renderStrip()
@@ -960,6 +1001,7 @@ class KeyHackImeService :
         resetComposing(finish = false)
         ownEdit { ic.commitText("$word ", 1) }
         if (policy.learning) suggester.learn(word, prev)
+        beforeWord = prev
         previousWord = word
         previousWordStale = false
         revert = null
@@ -1427,6 +1469,10 @@ class KeyHackImeService :
         const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64
+        private const val EMOJI_SLOT_WEIGHT = 0.8f
+
+        // "... before previous" at the end of the text; group 1 is empty when only one word is there.
+        private val LAST_WORDS = Regex("(?:([\\p{L}'’-]+)\\s+)?([\\p{L}'’-]+)\\s*$")
         private const val TOKEN_LOOKBACK = 256
         private const val MAX_SEARCH = 64
         private const val EMOJI_RESULTS = 12

@@ -25,15 +25,21 @@ data class Suggestions(
 
 /**
  * Autocorrect, completion and next-word prediction over one or more
- * dictionaries plus the user's history. Pure and synchronous: callers run it
- * off the main thread (see Suggester).
+ * dictionaries, next-word models from conversation sentences ([ngrams]) and
+ * the user's history. Pure and synchronous: callers run it off the main
+ * thread (see Suggester).
+ *
+ * Context is the word before the cursor ([previous]) and the one before it
+ * ([before]); it ranks candidates ("eu te am" -> "amo" over "ano") and drives
+ * predictions.
  */
 class SuggestionEngine(
     var dictionaries: List<Dictionary>,
     val history: UserHistory,
     var costs: EditCosts = EditCosts(),
+    var ngrams: List<NgramModel> = emptyList(),
 ) {
-    fun suggest(typedRaw: String, previous: String?, limit: Int = DEFAULT_LIMIT): Suggestions {
+    fun suggest(typedRaw: String, previous: String?, limit: Int = DEFAULT_LIMIT, before: String? = null): Suggestions {
         if (typedRaw.isEmpty()) return Suggestions.EMPTY
         val typed = Dictionary.key(typedRaw)
         val n = typed.length
@@ -59,11 +65,12 @@ class SuggestionEngine(
                 if (f <= 0 && cost > 0f) return@search
                 val word = dict.words[w]
                 val (score, kind) = dictionaryScore(f, cost, completion, (word.length - n).coerceAtLeast(0))
-                offer(word, score + primaryBonus + pairBonus(previous, word), kind)
+                offer(word, score + primaryBonus + contextBonus(before, previous, word), kind)
             }
         }
+        offerContextWords(typed, previous, before, ::offer)
         whitelist?.let { offer(it, WHITELIST_SCORE, Candidate.Kind.CORRECTION) }
-        offerUserWords(typed, previous, maxCost, ::offer)
+        offerUserWords(typed, previous, before, maxCost, ::offer)
 
         val userValid = history.isValid(typed)
         val typedIsWord = typedFreq >= 0 || userValid
@@ -76,7 +83,8 @@ class SuggestionEngine(
             autoCorrection(typedRaw, typed, typedIsWord, whitelist, ranked)
                 ?: accentFix(typed, typedFreq, userValid, ranked)
         val typedCandidate = Candidate(typedRaw, Float.MAX_VALUE, Candidate.Kind.TYPED)
-        val list = (listOf(typedCandidate) + ranked.filter { it.word != typedRaw }).take(limit + 1)
+        // The typed word in another case ("am" / "AM") is not an alternative.
+        val list = (listOf(typedCandidate) + ranked.filter { Dictionary.key(it.word) != typed }).take(limit + 1)
         return Suggestions(typedRaw, typedIsWord, list, auto)
     }
 
@@ -96,9 +104,35 @@ class SuggestionEngine(
         else -> freq - cost * COST_WEIGHT to Candidate.Kind.CORRECTION
     }
 
+    /**
+     * Words the context predicts that start with what is typed ("eu te am" ->
+     * "amo"), even when the dictionary has more frequent words with that prefix.
+     */
+    private fun offerContextWords(
+        typed: String,
+        previous: String?,
+        before: String?,
+        offer: (String, Float, Candidate.Kind) -> Unit,
+    ) {
+        if (previous == null || typed.isEmpty()) return
+        for (model in ngrams) {
+            val pair = if (before != null) model.afterPair(before, previous) else emptyList()
+            val followers = pair + model.after(previous)
+            for ((w, _) in followers) {
+                if (w.length <= typed.length || !w.startsWith(typed)) continue
+                val freq = dictionaries.maxOfOrNull { d -> d.lookup(w).let { if (it < 0) 0 else d.freqs[it] } } ?: 0
+                if (freq <= 0) continue
+                val extra = w.length - typed.length
+                val score = freq - COMPLETION_PENALTY - extra * LENGTH_PENALTY + contextBonus(before, previous, w)
+                offer(displayForm(w), score, Candidate.Kind.COMPLETION)
+            }
+        }
+    }
+
     private fun offerUserWords(
         typed: String,
         previous: String?,
+        before: String?,
         maxCost: Float,
         offer: (String, Float, Candidate.Kind) -> Unit,
     ) {
@@ -114,7 +148,7 @@ class SuggestionEngine(
                 else -> Candidate.Kind.CORRECTION
             }
             val penalty = if (prefix) COMPLETION_PENALTY + (word.length - typed.length) * LENGTH_PENALTY else 0f
-            offer(word, f - cost * COST_WEIGHT - penalty + pairBonus(previous, word), kind)
+            offer(word, f - cost * COST_WEIGHT - penalty + contextBonus(before, previous, word), kind)
         }
     }
 
@@ -163,13 +197,48 @@ class SuggestionEngine(
         return fix
     }
 
-    /** Next-word predictions after [previous], from the user's history. */
-    fun predict(previous: String, limit: Int = DEFAULT_LIMIT): List<Candidate> =
-        history.predict(previous, limit).map { Candidate(it, 0f, Candidate.Kind.PREDICTION) }
+    /**
+     * Next words after "[before] [previous]": the user's own habits first, then
+     * the conversation models. A language whose model knows the two-word
+     * context outranks the others, so Portuguese and English do not mix.
+     */
+    fun predict(previous: String, before: String? = null, limit: Int = DEFAULT_LIMIT): List<Candidate> {
+        val scores = HashMap<String, Float>()
+        val pairs = if (before != null) ngrams.map { it.afterPair(before, previous) } else emptyList()
+        val anyPair = pairs.any { it.isNotEmpty() }
+        for ((i, model) in ngrams.withIndex()) {
+            val pair = pairs.getOrNull(i).orEmpty()
+            val weight = if (anyPair && pair.isEmpty()) OTHER_LANGUAGE else 1f
+            val best = HashMap<String, Float>()
+            for ((w, s) in pair) best[w] = s * TRIGRAM_WEIGHT
+            for ((w, s) in model.after(previous)) best[w] = maxOf(best[w] ?: 0f, s.toFloat())
+            for ((w, s) in best) scores[w] = maxOf(scores[w] ?: 0f, s * weight)
+        }
+        for ((w, count) in history.followers(previous, USER_PREDICTIONS)) {
+            val k = Dictionary.key(w)
+            scores[k] = (scores[k] ?: 0f) + USER_PREDICTION_BASE + count.coerceAtMost(PAIR_CAP) * USER_PREDICTION_STEP
+        }
+        return scores.entries
+            .sortedByDescending { it.value }
+            .take(limit)
+            .map { Candidate(displayForm(it.key), it.value, Candidate.Kind.PREDICTION) }
+    }
 
-    private fun pairBonus(previous: String?, word: String): Float {
+    /** The dictionary's spelling of a lowercase key ("i" -> "I", "brasil" -> "Brasil"). */
+    private fun displayForm(key: String): String {
+        for (d in dictionaries) {
+            val i = d.lookup(key)
+            if (i >= 0) return d.words[i]
+        }
+        return key
+    }
+
+    /** Bonus for a candidate that fits the words before it: the user's pairs and the conversation models. */
+    private fun contextBonus(before: String?, previous: String?, word: String): Float {
         if (previous == null) return 0f
-        return history.pairCount(previous, word).coerceAtMost(PAIR_CAP) * PAIR_BONUS
+        val user = history.pairCount(previous, word).coerceAtMost(PAIR_CAP) * PAIR_BONUS
+        val corpus = ngrams.maxOfOrNull { it.score(before, previous, word) } ?: 0
+        return user + corpus * CONTEXT_WEIGHT / NgramModel.MAX_SCORE
     }
 
     /** Plain weighted edit distance, for the (small) user word list. */
@@ -216,6 +285,12 @@ class SuggestionEngine(
         private const val CASE_FIX_MIN_FREQ = 100
         private const val ACCENT_FIX_RARE = 80
         private const val ACCENT_FIX_MARGIN = 50f
+        private const val CONTEXT_WEIGHT = 80f
+        private const val TRIGRAM_WEIGHT = 1.15f
+        private const val OTHER_LANGUAGE = 0.5f
+        private const val USER_PREDICTIONS = 5
+        private const val USER_PREDICTION_BASE = 150f
+        private const val USER_PREDICTION_STEP = 40f
 
         /** Largest edit cost still worth suggesting for a typed word of [length]. Tuned by hand. */
         @Suppress("MagicNumber")

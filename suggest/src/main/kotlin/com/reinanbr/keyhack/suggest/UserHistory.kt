@@ -56,11 +56,14 @@ class UserHistory(private val maxWords: Int = MAX_WORDS, private val maxPairs: I
     fun pairCount(previous: String, word: String): Int = pairs[Dictionary.key(previous)]?.get(Dictionary.key(word)) ?: 0
 
     /** Most frequent followers of [previous]. */
-    fun predict(previous: String, limit: Int): List<String> = pairs[Dictionary.key(previous)]
+    fun predict(previous: String, limit: Int): List<String> = followers(previous, limit).map { it.first }
+
+    /** Most frequent followers of [previous], with how often each followed it. */
+    fun followers(previous: String, limit: Int): List<Pair<String, Int>> = pairs[Dictionary.key(previous)]
         ?.entries
         ?.sortedByDescending { it.value }
         ?.take(limit)
-        ?.map { it.key }
+        ?.map { it.key to it.value }
         .orEmpty()
 
     /** All learned words with counts, for fuzzy matching (small: capped at [maxWords]). */

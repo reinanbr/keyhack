@@ -37,4 +37,16 @@ class EmojiDataTest {
         val raised = data.find("☝️")!!
         assertEquals("☝🏻", raised.withTone(1))
     }
+
+    @Test
+    fun offersEmojiForTypedWords() {
+        fun first(w: String) = data.forWord(w).firstOrNull()?.value
+        assertTrue("❤️" in data.forWord("amor").map { it.value })
+        assertEquals("😂", first("kkk"))
+        assertEquals("😂", first("kkkk"))
+        assertEquals("🙏", first("obrigado"))
+        assertTrue("🍕" in data.forWord("pizza").map { it.value })
+        assertTrue(data.forWord("a").isEmpty(), "too short")
+        assertTrue(data.forWord("xyzzy").isEmpty())
+    }
 }

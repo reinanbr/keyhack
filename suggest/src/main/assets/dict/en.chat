@@ -1,0 +1,43 @@
+# KeyHack chat words (en). Copyright 2026 The KeyHack Authors. Apache-2.0.
+# Words people type in chats that the formal dictionary lacks: kept valid
+# (never autocorrected away) and suggested. word<TAB>frequency (1..255).
+lol	150
+lmao	130
+omg	140
+btw	130
+idk	130
+tbh	120
+imo	110
+brb	110
+gonna	140
+wanna	140
+gotta	130
+nah	120
+thx	110
+pls	120
+plz	100
+ur	110
+ty	110
+np	110
+ikr	100
+smh	100
+fr	100
+ngl	100
+rn	110
+wyd	100
+hbu	90
+ok	170
+okay	150
+haha	130
+hahaha	110
+lmk	110
+nvm	110
+jk	100
+tho	110
+gg	90
+yup	110
+yay	110
+hmm	110
+ugh	110
+omw	100
+ily	100

@@ -10,6 +10,8 @@ data class Emoji(
     val toneable: Boolean,
     /** Search keywords, all languages, lowercase. */
     val keywords: List<String>,
+    /** Position of each keyword within its language's list (0 = the name). */
+    val keywordRanks: List<Int> = keywords.indices.toList(),
 ) {
     /** This emoji with [tone] (0 = none, 1..5 = light..dark). */
     fun withTone(tone: Int): String {
@@ -36,6 +38,39 @@ class EmojiData(val all: List<Emoji>) {
     fun group(name: String): List<Emoji> = byGroup[name].orEmpty()
 
     fun find(value: String): Emoji? = byValue[value]
+
+    /** Whole keywords (normalized) to the emoji that have them; built on first use. */
+    private val byKeyword: Map<String, List<Emoji>> by lazy {
+        // keyword -> (emoji, best rank of that keyword in the emoji's lists)
+        val map = HashMap<String, MutableMap<Emoji, Int>>()
+        for (e in all) {
+            for ((i, k) in e.keywords.withIndex()) {
+                val ranks = map.getOrPut(normalize(k)) { LinkedHashMap() }
+                val r = e.keywordRanks.getOrElse(i) { i }
+                ranks[e] = minOf(ranks[e] ?: r, r)
+            }
+        }
+        val sorted = HashMap<String, MutableList<Emoji>>(map.size)
+        // A keyword early in an emoji's list describes it best; on a tie the more
+        // specific emoji (fewer keywords) wins, then table order.
+        val order = compareBy<Map.Entry<Emoji, Int>>({ it.value }, { it.key.keywords.size })
+        for ((k, ranks) in map) sorted[k] = ranks.entries.sortedWith(order).map { it.key }.toMutableList()
+        for ((alias, value) in CHAT_ALIASES) {
+            val e = byValue[value] ?: continue
+            sorted.getOrPut(alias) { ArrayList() }.add(0, e)
+        }
+        sorted
+    }
+
+    /**
+     * Emoji to offer next to a typed word, as WhatsApp-style chat keyboards do:
+     * those with [word] as a whole keyword in any language ("amor" -> ❤️,
+     * "kkk" -> 😂, "pizza" -> 🍕), in table order.
+     */
+    fun forWord(word: String, limit: Int = WORD_LIMIT): List<Emoji> {
+        if (word.length < MIN_WORD) return emptyList()
+        return byKeyword[normalize(word)].orEmpty().take(limit)
+    }
 
     /**
      * Emoji whose keywords start with every word of [query] (any language),
@@ -80,14 +115,25 @@ class EmojiData(val all: List<Emoji>) {
         private const val PREFIX = 4
         private const val WORD = 2
         private const val NAME_SLOTS = 1
+        private const val WORD_LIMIT = 3
+        private const val MIN_WORD = 2
+
+        /** Chat spellings the Unicode keywords lack. */
+        private val CHAT_ALIASES =
+            listOf(
+                "kkk" to "😂", "kkkk" to "😂", "kkkkk" to "😂", "haha" to "😂", "rs" to "😂", "rsrs" to "😂",
+                "lmao" to "😂",
+                "obg" to "🙏", "obrigado" to "🙏", "obrigada" to "🙏", "thanks" to "🙏", "vlw" to "👍",
+                "blz" to "👍", "parabens" to "🎉", "congrats" to "🎉", "bjs" to "😘", "beijos" to "😘",
+            )
 
         fun read(reader: BufferedReader): EmojiData {
             val list = ArrayList<Emoji>(INITIAL)
             reader.forEachLine { line ->
                 val f = line.split('\t')
                 if (f.size < KEYWORD_COLUMN) return@forEachLine
-                val keywords = f.drop(KEYWORD_COLUMN).flatMap { it.split('|') }.filter { it.isNotEmpty() }
-                list += Emoji(f[1], f[0], f[2] == "1", keywords)
+                val columns = f.drop(KEYWORD_COLUMN).map { col -> col.split('|').filter { it.isNotEmpty() } }
+                list += Emoji(f[1], f[0], f[2] == "1", columns.flatten(), columns.flatMap { it.indices })
             }
             return EmojiData(list)
         }

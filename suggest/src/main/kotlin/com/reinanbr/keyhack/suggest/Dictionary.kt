@@ -159,10 +159,23 @@ class Dictionary private constructor(
 
         fun key(word: String): String = word.lowercase(Locale.ROOT)
 
-        /** Reads tools/gen_dict.py output (already decompressed). */
-        fun read(language: String, reader: BufferedReader): Dictionary {
+        /**
+         * Reads tools/gen_dict.py output (already decompressed), plus any extra
+         * word lists in the same format (the chat words). A word in several
+         * lists keeps its highest frequency.
+         */
+        fun read(language: String, reader: BufferedReader, vararg extra: BufferedReader): Dictionary {
             val entries = ArrayList<Pair<String, Int>>(INITIAL)
             val fixes = HashMap<String, String>()
+            for (r in listOf(reader) + extra) readInto(r, entries, fixes)
+            return build(language, entries, fixes)
+        }
+
+        private fun readInto(
+            reader: BufferedReader,
+            entries: MutableList<Pair<String, Int>>,
+            fixes: MutableMap<String, String>,
+        ) {
             reader.forEachLine { line ->
                 if (line.isEmpty() || line.startsWith("#")) return@forEachLine
                 val parts = line.split('\t')
@@ -175,7 +188,6 @@ class Dictionary private constructor(
                     }
                 }
             }
-            return build(language, entries, fixes)
         }
 
         fun build(
