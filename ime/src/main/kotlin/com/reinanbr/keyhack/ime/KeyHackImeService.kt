@@ -127,6 +127,10 @@ class KeyHackImeService :
     private val pcMode: Boolean
         get() = pcOverride ?: (settings.layout == "pc" || editorPackage in settings.pcApps)
 
+    /** Advanced (programming/terminal) keyboard; see [KeyHackSettings.mode]. */
+    private val advanced: Boolean
+        get() = pcMode || settings.advanced
+
     override fun onCreate() {
         super.onCreate()
         settings = KeyHackSettings(this)
@@ -342,7 +346,7 @@ class KeyHackImeService :
         val base = layouts.get(id)
         if (pc && (layer == ALPHA || layer == "fn")) return base
         val extra = ArrayList<KeyRow>()
-        if (settings.devRow && layer != "numpad" && layer != "phone") {
+        if (advanced && settings.devRow && layer != "numpad" && layer != "phone") {
             layouts.devRow(
                 settings.devRowKeys,
             )?.let { extra += it }
@@ -353,7 +357,11 @@ class KeyHackImeService :
             // row, the top row's digit hints become code symbols too.
             if (settings.numberRow) layouts.row("number-row")?.let { extra += it }
             val common = layouts.common
-            layout = layout.withSymbolHints(common.symbolHints, common.popups, replaceDigits = settings.numberRow)
+            // Simple mode keeps the chat symbols (rows 2-3); advanced adds code
+            // symbols on the top row.
+            val hints = if (advanced) common.symbolHints else listOf(emptyList<String>()) + common.symbolHints.drop(1)
+            layout = layout.withSymbolHints(hints, common.popups, replaceDigits = advanced && settings.numberRow)
+            if (!advanced && settings.numberRow) layout = layout.withoutDigitHints()
         }
         return layout.withRowsOnTop(extra)
     }
@@ -663,6 +671,27 @@ class KeyHackImeService :
         showDefaultStrip()
     }
 
+    /** Simple (chat) <-> advanced (programming/terminal). Saved for every app. */
+    private fun toggleMode() {
+        commitComposing(autocorrect = false)
+        val toAdvanced = !advanced
+        settings.edit {
+            putString(
+                KeyHackSettings.MODE,
+                if (toAdvanced) KeyHackSettings.MODE_ADVANCED else KeyHackSettings.MODE_SIMPLE,
+            )
+        }
+        // Leaving advanced also leaves the PC layout, even in a terminal app.
+        pcOverride = if (toAdvanced) null else false
+        layer = ALPHA
+        modifiers.reset()
+        shift.reset()
+        currentInputEditorInfo?.let { configure(it, true) }
+        renderKeyboard()
+        showDefaultStrip()
+        showMessage(getString(if (toAdvanced) R.string.keyhack_msg_mode_advanced else R.string.keyhack_msg_mode_simple))
+    }
+
     private fun openSettings() {
         val intent = packageManager.getLaunchIntentForPackage(packageName) ?: return
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -823,7 +852,8 @@ class KeyHackImeService :
         add(StripView.Item("emoji", "☺", large = true))
         if (gifAllowed()) add(StripView.Item("gif", "GIF", bold = true))
         add(StripView.Item("tools", "</>", bold = true))
-        add(StripView.Item("pc", if (pcMode) "ABC" else "PC", bold = true, accent = pcMode))
+        add(StripView.Item("mode", "DEV", bold = true, accent = advanced))
+        if (advanced) add(StripView.Item("pc", if (pcMode) "ABC" else "PC", bold = true, accent = pcMode))
         add(StripView.Item("incognito", "🕶", accent = incognito))
         add(StripView.Item("settings", "⚙", large = true))
         add(StripView.Item("hide", "⌄", large = true))
@@ -845,6 +875,8 @@ class KeyHackImeService :
             id == "tools" -> onCommand(Command.TOOLS)
 
             id == "pc" -> togglePc()
+
+            id == "mode" -> toggleMode()
 
             id == "incognito" -> {
                 incognito = !incognito

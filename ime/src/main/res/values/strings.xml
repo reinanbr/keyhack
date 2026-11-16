@@ -21,6 +21,8 @@
   <string name="keyhack_gif_share_fallback">This app doesn\'t accept GIFs from keyboards. Pick it in the share sheet.</string>
   <string name="keyhack_msg_soon">Coming in a later version</string>
   <string name="keyhack_msg_incognito_on">Incognito: nothing you type is learned</string>
+  <string name="keyhack_msg_mode_simple">Simple keyboard: for chatting</string>
+  <string name="keyhack_msg_mode_advanced">Advanced keyboard: Ctrl, Alt, arrows and code symbols</string>
   <string name="keyhack_msg_incognito_off">Incognito off</string>
   <string name="keyhack_msg_select_first">Select text first (or type a word before the cursor)</string>
   <string name="keyhack_msg_failed">That didn\'t work on this text</string>

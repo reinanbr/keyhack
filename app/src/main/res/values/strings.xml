@@ -20,6 +20,10 @@
   <string name="section_privacy">Privacy</string>
 
   <string name="pref_layout">Letter layout</string>
+  <string name="pref_mode">Keyboard</string>
+  <string name="mode_simple">Simple: for chatting</string>
+  <string name="mode_advanced">Advanced: programming and terminal</string>
+  <string name="pref_mode_help">Switch any time with the DEV button on the keyboard bar. Advanced adds the dev row (Esc, Tab, Ctrl, Alt, arrows), code symbols on the top row and the PC layout. Terminal apps always open in advanced mode.</string>
   <string name="pref_number_row">Number row</string>
   <string name="pref_number_row_summary">Digits above the letters</string>
   <string name="pref_dev_row">Dev row</string>
@@ -73,5 +77,5 @@
   <string name="lang_pt">Portuguese (Brazil)</string>
   <string name="privacy_body">No analytics, no crash reporting, no telemetry. Learned words are stored in a private file that is never backed up. Typing in password fields and in apps that ask for no personalized learning is never learned. Use the 🕶 button on the toolbar for incognito typing.</string>
   <string name="help_title">Tips</string>
-  <string name="help_body">• Swipe up on a key to type the symbol in its corner ({ } [ ] _ / and more); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.</string>
+  <string name="help_body">• DEV on the keyboard bar switches between the simple keyboard (chat) and the advanced one (Ctrl, Alt, arrows, terminal).\n• Swipe up on a key to type the symbol in its corner (@ _ / \" and more; in advanced mode also { } [ ]); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.</string>
 </resources>

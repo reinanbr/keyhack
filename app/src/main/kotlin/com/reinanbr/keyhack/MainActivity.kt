@@ -1,6 +1,7 @@
 package com.reinanbr.keyhack
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -41,6 +42,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -151,6 +153,12 @@ private fun SettingsScreen(
     onClearLearning: () -> Unit,
 ) {
     val p = remember { Prefs(settings) }
+    // The keyboard changes prefs too (the DEV button): keep the screen in sync.
+    DisposableEffect(settings) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> p.version.value++ }
+        settings.prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settings.prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier =
@@ -213,8 +221,35 @@ private fun TryIt() {
 }
 
 @Composable
+private fun ModeChoice(p: Prefs) {
+    val mode = p.string(K.MODE, K.MODE_SIMPLE)
+    Choice(
+        stringResource(R.string.pref_mode),
+        mode,
+        mapOf(
+            K.MODE_SIMPLE to stringResource(R.string.mode_simple),
+            K.MODE_ADVANCED to stringResource(R.string.mode_advanced),
+        ),
+    ) { v -> p.set { putString(K.MODE, v) } }
+    Text(stringResource(R.string.pref_mode_help), style = MaterialTheme.typography.bodySmall)
+    if (mode != K.MODE_ADVANCED) return
+    val devRow = p.bool(K.DEV_ROW, true)
+    SwitchRow(stringResource(R.string.pref_dev_row), stringResource(R.string.pref_dev_row_summary), devRow) {
+        p.set { putBoolean(K.DEV_ROW, it) }
+    }
+    if (devRow) {
+        TextPref(
+            stringResource(R.string.pref_dev_row_keys),
+            p.string(K.DEV_ROW_KEYS, K.DEFAULT_DEV_ROW),
+            stringResource(R.string.pref_dev_row_keys_help),
+        ) { v -> p.set { putString(K.DEV_ROW_KEYS, v.ifBlank { K.DEFAULT_DEV_ROW }) } }
+    }
+}
+
+@Composable
 private fun KeyboardSection(p: Prefs) {
     Section(stringResource(R.string.section_keyboard)) {
+        ModeChoice(p)
         val layoutLabels =
             mapOf(
                 "qwerty" to R.string.layout_qwerty,
@@ -235,17 +270,6 @@ private fun KeyboardSection(p: Prefs) {
             p.bool(K.NUMBER_ROW, true),
         ) {
             p.set { putBoolean(K.NUMBER_ROW, it) }
-        }
-        val devRow = p.bool(K.DEV_ROW, true)
-        SwitchRow(stringResource(R.string.pref_dev_row), stringResource(R.string.pref_dev_row_summary), devRow) {
-            p.set { putBoolean(K.DEV_ROW, it) }
-        }
-        if (devRow) {
-            TextPref(
-                stringResource(R.string.pref_dev_row_keys),
-                p.string(K.DEV_ROW_KEYS, K.DEFAULT_DEV_ROW),
-                stringResource(R.string.pref_dev_row_keys_help),
-            ) { v -> p.set { putString(K.DEV_ROW_KEYS, v.ifBlank { K.DEFAULT_DEV_ROW }) } }
         }
         SwitchRow(
             stringResource(R.string.pref_key_hints),

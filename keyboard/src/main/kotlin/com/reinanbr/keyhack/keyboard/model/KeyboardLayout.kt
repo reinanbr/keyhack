@@ -91,6 +91,15 @@ data class KeyboardLayout(val id: String, val rows: List<KeyRow>) {
 
     fun withRowsOnTop(extra: List<KeyRow>): KeyboardLayout = if (extra.isEmpty()) this else copy(rows = extra + rows)
 
+    /** Drops single-digit hints (shown by the number row instead); the digit stays a long-press option. */
+    fun withoutDigitHints(): KeyboardLayout = copy(
+        rows = rows.map { row ->
+            row.copy(
+                keys = row.keys.map { if (it.hint?.singleOrNull()?.isDigit() == true) it.copy(hint = null) else it },
+            )
+        },
+    )
+
     /**
      * Gboard-style symbols on the letter keys: the n-th character key of letter
      * row r gets `hints[r][n]` as its corner hint (typed by a swipe up) and as

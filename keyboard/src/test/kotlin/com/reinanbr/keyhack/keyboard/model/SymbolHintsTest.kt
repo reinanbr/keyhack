@@ -40,6 +40,19 @@ class SymbolHintsTest {
     }
 
     @Test
+    fun simpleModeHasChatSymbolsOnlyAndNoDigitHintsUnderANumberRow() {
+        val hints = listOf(emptyList<String>()) + common.symbolHints.drop(1)
+        val l = TestLayouts.load(
+            "qwerty",
+        ).withSymbolHints(hints, common.popups, replaceDigits = false).withoutDigitHints()
+        assertNull(l.key("q").hint)
+        assertNull(l.key("t").hint)
+        assertEquals("1", l.key("q").popup.first(), "the digit stays on long-press")
+        assertEquals("_", l.key("f").hint)
+        assertEquals("\"", l.key("x").hint)
+    }
+
+    @Test
     fun periodKeepsItsSlash() {
         val l = qwerty(numberRow = true)
         assertEquals("/", l.key(".").hint)

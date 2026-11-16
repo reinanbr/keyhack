@@ -20,6 +20,8 @@
   <string name="keyhack_gif_share_fallback">Este app não aceita GIFs do teclado. Escolha-o na tela de compartilhamento.</string>
   <string name="keyhack_msg_soon">Disponível numa próxima versão</string>
   <string name="keyhack_msg_incognito_on">Modo anônimo: nada do que você digita é aprendido</string>
+  <string name="keyhack_msg_mode_simple">Teclado simples: para conversar</string>
+  <string name="keyhack_msg_mode_advanced">Teclado avançado: Ctrl, Alt, setas e símbolos de código</string>
   <string name="keyhack_msg_incognito_off">Modo anônimo desligado</string>
   <string name="keyhack_msg_select_first">Selecione um texto primeiro (ou digite uma palavra antes do cursor)</string>
   <string name="keyhack_msg_failed">Não funcionou com este texto</string>

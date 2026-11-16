@@ -16,6 +16,14 @@ class KeyHackSettings(context: Context) {
 
     private fun str(key: String, default: String) = prefs.getString(key, default) ?: default
 
+    /**
+     * "simple": a chat keyboard (letters, emoji, GIFs, suggestions).
+     * "advanced": adds the dev row (Esc, Tab, Ctrl, Alt, arrows), code symbols
+     * on the top row and the PC layout button. Terminal apps are always advanced.
+     */
+    val mode: String get() = str(MODE, MODE_SIMPLE)
+    val advanced: Boolean get() = mode == MODE_ADVANCED
+
     // Layout
     val layout: String get() = str(LAYOUT, "qwerty")
     val numberRow: Boolean get() = bool(NUMBER_ROW, true)
@@ -54,6 +62,9 @@ class KeyHackSettings(context: Context) {
 
     companion object {
         const val FILE = "keyhack_settings"
+        const val MODE = "keyboard_mode"
+        const val MODE_SIMPLE = "simple"
+        const val MODE_ADVANCED = "advanced"
         const val LAYOUT = "layout"
         const val NUMBER_ROW = "number_row"
         const val DEV_ROW = "dev_row"
