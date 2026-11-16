@@ -43,9 +43,10 @@ jobs:
 
       # check = unit tests (including the build-logic guard tests), Android lint
       # and detekt/ktlint for every module, and the manifest policy gate.
-      # assembleRelease builds the app with R8 and re-runs the gate.
+      # assembleRelease builds the app with R8 and re-runs the gate;
+      # assembleDebug gives an installable APK for testing this commit.
       - name: Build, test and verify
-        run: ./gradlew check assembleRelease verifyManifestPolicies --stacktrace
+        run: ./gradlew check assembleRelease assembleDebug verifyManifestPolicies --stacktrace
 
       - name: Release APK checksums and permissions
         run: |
@@ -54,6 +55,16 @@ jobs:
           for apk in app/build/outputs/apk/release/*.apk; do
             "$AAPT2" dump permissions "$apk"
           done
+
+      # Signed with a throwaway debug key: for testing only. Released versions
+      # are on the releases page (release.yml).
+      - name: Upload debug APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: KeyHack-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload reports
         if: failure()

@@ -12,7 +12,37 @@ Every keyboard can read everything you type, so KeyHack is built to be
 learning that stores word counts only, and a single, auditable network use
 (GIF search).
 
-> **Status: milestone M1–M4 in progress.** See the [roadmap](#roadmap).
+> **Status: 0.1.0, first public preview.** See the [changelog](CHANGELOG.md)
+> and the [roadmap](#roadmap).
+
+<p>
+  <img src="docs/screenshots/suggestions.png" width="19%" alt="Suggestions while typing in Portuguese">
+  <img src="docs/screenshots/emoji.png" width="19%" alt="Emoji panel">
+  <img src="docs/screenshots/stickers.png" width="19%" alt="Emoji stickers panel">
+  <img src="docs/screenshots/terminal.png" width="19%" alt="Advanced mode with Ctrl, Alt and arrows in Termux">
+  <img src="docs/screenshots/settings.png" width="19%" alt="Settings screen">
+</p>
+
+## Download
+
+Get the APK from the **[releases page](https://github.com/reinanbr/keyhack/releases)**
+([latest version](https://github.com/reinanbr/keyhack/releases/latest)). Each
+release lists its changes and a `SHA256SUMS` file. Android 9 or newer.
+
+1. Download `KeyHack-<version>.apk` and open it (allow installing from your
+   browser or file manager when Android asks).
+2. Open KeyHack and follow the two setup steps: enable it, then choose it.
+
+Check the download before installing:
+
+```sh
+sha256sum -c SHA256SUMS
+apksigner verify --print-certs KeyHack-<version>.apk
+```
+
+Every commit to `main` also produces a debug APK under the CI run's
+artifacts. It is signed with a throwaway key, so it cannot update a release
+install; use it only for testing.
 
 ## Features
 
@@ -119,6 +149,19 @@ Requirements: JDK 21 and the Android SDK (platform 37).
 Release signing reads `KEYHACK_KEYSTORE`, `KEYHACK_KEYSTORE_PASSWORD`,
 `KEYHACK_KEY_ALIAS` and `KEYHACK_KEY_PASSWORD` from the environment (CI
 secrets). Keys never live in the repository.
+
+### Releasing
+
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+2. Move the `Unreleased` notes in [CHANGELOG.md](CHANGELOG.md) to a new
+   version section.
+3. Commit, tag and push: `git tag -a v0.2.0 -m "KeyHack 0.2.0" && git push origin main v0.2.0`.
+
+The [release workflow](.github/workflows/release.yml) checks that the tag
+matches `versionName`, runs every check, signs the APK with the key from the
+repository secrets (`KEYHACK_KEYSTORE_BASE64`, `KEYHACK_KEYSTORE_PASSWORD`,
+`KEYHACK_KEY_ALIAS`, `KEYHACK_KEY_PASSWORD`) and publishes it with the
+changelog section as release notes.
 
 After changing dependencies, regenerate the verification metadata and review
 the diff:
