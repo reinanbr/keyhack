@@ -7,6 +7,19 @@ All notable changes to KeyHack are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Shift can be held: keys typed with another finger while Shift is down come
+  out shifted, and lifting it turns Shift off. A tap still shifts the next
+  letter and a double tap still locks caps.
+
+### Fixed
+
+- Auto-capitalization no longer adds Shift to arrows, Tab, Ctrl/Alt
+  shortcuts or the space-bar cursor swipe (an arrow at the start of a
+  sentence selected text, Tab moved focus backwards). Shift you turn on
+  yourself still does, so Shift+arrows selects text.
+
 ## [0.1.0] - 2026-11-16
 
 First public preview.

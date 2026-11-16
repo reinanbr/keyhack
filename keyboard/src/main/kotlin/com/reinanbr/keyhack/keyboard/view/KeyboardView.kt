@@ -44,6 +44,12 @@ class KeyboardView(context: Context) : View(context) {
 
         /** Space-bar trackpad: [steps] cursor moves, positive = right. */
         fun onCursorSwipe(steps: Int)
+
+        /** Shift pressed; it fires on press so keys typed while it is held come out shifted. */
+        fun onShiftDown()
+
+        /** The finger holding Shift was lifted. */
+        fun onShiftUp()
     }
 
     var listener: Listener? = null
@@ -187,6 +193,9 @@ class KeyboardView(context: Context) : View(context) {
         }
 
     private var longPressPointer = -1
+
+    /** Pointer holding the Shift key, or -1. */
+    private var shiftPointer = -1
     private val longPressRunnable = Runnable { onLongPress() }
 
     private val accessibilityHelper = KeyboardAccessibilityHelper(this)
@@ -391,7 +400,11 @@ class KeyboardView(context: Context) : View(context) {
         val g = geometry ?: return
         val key = g.keys[index].key
         feedback()
-        if (key.repeats) {
+        if (key.action == KeyAction.Shift) {
+            pointers[pointerId].consumed = true
+            shiftPointer = pointerId
+            listener?.onShiftDown()
+        } else if (key.repeats) {
             // Repeating keys fire on press, then repeat while held.
             fire(key)
             pointers[pointerId].consumed = true
@@ -448,6 +461,7 @@ class KeyboardView(context: Context) : View(context) {
         val index = p.key
         if (index == NO_KEY) return
         if (longPressPointer == pointerId) cancelKeyLongPress()
+        if (shiftPointer == pointerId) releaseShift()
         val key = g.keys[index].key
         when {
             p.popup -> {
@@ -526,12 +540,18 @@ class KeyboardView(context: Context) : View(context) {
         removeCallbacks(longPressRunnable)
     }
 
+    private fun releaseShift() {
+        shiftPointer = -1
+        listener?.onShiftUp()
+    }
+
     private fun stopRepeat() {
         repeatingKey = NO_KEY
         removeCallbacks(repeatRunnable)
     }
 
     fun cancelAllPresses() {
+        if (shiftPointer >= 0) releaseShift()
         pointers.forEach { it.clear() }
         stopRepeat()
         cancelKeyLongPress()

@@ -424,7 +424,7 @@ class KeyHackImeService :
 
     private fun renderState() {
         keyboardView?.apply {
-            shiftState = shift.state
+            shiftState = shift.displayState
             modifierStates = modifiers.snapshot()
         }
     }
@@ -453,6 +453,7 @@ class KeyHackImeService :
 
             KeyAction.Space -> onSpace()
 
+            // Touch goes through onShiftDown/onShiftUp; this is a tap from accessibility.
             KeyAction.Shift -> shift.onShiftTap(SystemClock.uptimeMillis())
 
             KeyAction.Delete -> onDelete()
@@ -483,6 +484,16 @@ class KeyHackImeService :
         renderState()
     }
 
+    override fun onShiftDown() {
+        shift.onShiftDown(SystemClock.uptimeMillis())
+        renderState()
+    }
+
+    override fun onShiftUp() {
+        shift.onShiftUp()
+        renderState()
+    }
+
     override fun onCursorSwipe(steps: Int) {
         val ic = currentInputConnection ?: return
         commitComposing(autocorrect = false)
@@ -493,7 +504,7 @@ class KeyHackImeService :
     }
 
     private fun currentMods() = KeySender.Mods(
-        shift = shift.state != ShiftState.OFF,
+        shift = shift.isUserShift,
         ctrl = modifiers.isActive(Mod.CTRL),
         alt = modifiers.isActive(Mod.ALT),
         meta = modifiers.isActive(Mod.META),
@@ -501,7 +512,7 @@ class KeyHackImeService :
 
     private fun afterKeySent() {
         modifiers.onKeySent()
-        if (shift.state == ShiftState.ONCE) shift.onCharacterCommitted()
+        if (shift.state == ShiftState.ONCE || shift.isHeld) shift.onCharacterCommitted()
         revert = null
         autoSpace = false
     }
