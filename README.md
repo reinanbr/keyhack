@@ -76,6 +76,7 @@ install; use it only for testing.
   one-tap paste of what you just copied.
 - **Snippets** (encrypted saved texts with typed shortcuts) and a **command
   palette** that finds any panel, toggle or tool by name.
+- **One-handed and floating modes** (drag the floating keyboard anywhere).
 - **Glide typing**, decoded on the phone against the same dictionaries.
 - **Ergonomics:** slide Delete to delete whole words (with undo), held Delete
   speeds up to words, space-bar cursor slide, adjustable vibration.

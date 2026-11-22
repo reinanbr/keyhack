@@ -39,6 +39,13 @@ class KeyHackSettings(context: Context) {
     val oneHanded: String get() = str(ONE_HANDED, ONE_HANDED_OFF).takeIf { it in ONE_HANDED_SIDES } ?: ONE_HANDED_OFF
     val haptics: Boolean get() = bool(HAPTICS, true)
 
+    /** Floating keyboard: a smaller keyboard the user drags anywhere over the app. */
+    val floating: Boolean get() = bool(FLOATING, false)
+
+    /** Where it floats, as fractions (0..1) of the room left beside and above it. */
+    val floatX: Float get() = prefs.getFloat(FLOAT_X, DEFAULT_FLOAT_X).coerceIn(0f, 1f)
+    val floatY: Float get() = prefs.getFloat(FLOAT_Y, DEFAULT_FLOAT_Y).coerceIn(0f, 1f)
+
     /** Slide across the letters to type a word. */
     val glide: Boolean get() = bool(GLIDE, true)
 
@@ -94,6 +101,11 @@ class KeyHackSettings(context: Context) {
         const val LONG_PRESS = "long_press_ms"
         const val THEME = "theme"
         const val HAPTICS = "haptics"
+        const val FLOATING = "floating"
+        const val FLOAT_X = "float_x"
+        const val FLOAT_Y = "float_y"
+        const val DEFAULT_FLOAT_X = 0.5f
+        const val DEFAULT_FLOAT_Y = 1f
         const val GLIDE = "glide_typing"
         const val VIBRATION_MS = "vibration_ms"
         const val MAX_VIBRATION_MS = 60

@@ -65,4 +65,6 @@
   <string name="keyhack_cmd_switch">Trocar de teclado</string>
   <string name="keyhack_cmd_hide">Esconder teclado</string>
   <string name="keyhack_glide_none">Nenhuma palavra para esse deslize</string>
+  <string name="keyhack_float">Teclado flutuante</string>
+  <string name="keyhack_float_handle">Arraste para mover o teclado; ▭ volta para baixo</string>
 </resources>

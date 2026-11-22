@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.net.Uri
 import android.os.Build
@@ -36,6 +37,7 @@ import com.reinanbr.keyhack.ime.ui.ClipboardPanel
 import com.reinanbr.keyhack.ime.ui.EditAction
 import com.reinanbr.keyhack.ime.ui.EmojiPanel
 import com.reinanbr.keyhack.ime.ui.EmojiStore
+import com.reinanbr.keyhack.ime.ui.FloatBar
 import com.reinanbr.keyhack.ime.ui.GifPanel
 import com.reinanbr.keyhack.ime.ui.GifStrip
 import com.reinanbr.keyhack.ime.ui.OneHandBar
@@ -67,6 +69,7 @@ import com.reinanbr.keyhack.theme.KeyboardThemes
 import java.text.BreakIterator
 import java.util.Locale
 import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 import com.reinanbr.keyhack.keyboard.model.Modifier as Mod
 
 /**
@@ -116,6 +119,14 @@ class KeyHackImeService :
     private var keyboardView: KeyboardView? = null
     private var popup: KeyPopupView? = null
     private var oneHandBar: OneHandBar? = null
+
+    // Floating mode: the column holding strip, panels and keys; its drag
+    // handle; the status bar height (the column stays below it); the
+    // column's margins when a drag started.
+    private var keyColumn: LinearLayout? = null
+    private var floatBar: FloatBar? = null
+    private var floatTopInset = 0
+    private var floatDragStart: Pair<Int, Int>? = null
     private var emojiPanel: EmojiPanel? = null
     private var gifPanel: GifPanel? = null
     private var toolsPanel: ToolsPanel? = null
@@ -263,26 +274,19 @@ class KeyHackImeService :
         )
         val handBar = addOneHandBar(frame, kv)
         val column = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-        column.addView(
-            stripView,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
-        column.addView(
-            results,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
+        val bar = FloatBar(ctx).also {
+            it.visibility = View.GONE
+            it.listener = floatListener
+        }
+        addRow(column, bar)
+        addRow(column, stripView)
+        addRow(column, results)
         val liveGifs = GifStrip(ctx, gifs).also {
             it.visibility = View.GONE
             it.listener = GifStrip.Listener(::onGifPicked)
         }
-        column.addView(
-            liveGifs,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
-        column.addView(
-            frame,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
+        addRow(column, liveGifs)
+        addRow(column, frame)
         val overlay = KeyPopupView(ctx)
         kv.popupView = overlay
         val rootView = FrameLayout(ctx)
@@ -299,9 +303,13 @@ class KeyHackImeService :
         // keys above it, or taps on the bottom row hit "hide keyboard".
         rootView.setOnApplyWindowInsetsListener { v, insets ->
             v.setPadding(0, 0, 0, navBarInset(insets))
+            floatTopInset = statusBarInset(insets)
             insets
         }
+        rootView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionFloating() }
         root = rootView
+        keyColumn = column
+        floatBar = bar
         strip = stripView
         searchResults = results
         gifStrip = liveGifs
@@ -319,12 +327,21 @@ class KeyHackImeService :
         return rootView
     }
 
+    private fun addRow(column: LinearLayout, view: View) = column.addView(
+        view,
+        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+    )
+
     /** The one-handed mode column, hidden until the mode is on (see [applyOneHanded]). */
     private fun addOneHandBar(frame: FrameLayout, kv: KeyboardView): OneHandBar {
         val bar = OneHandBar(this).also {
             it.visibility = View.GONE
             it.listener = OneHandBar.Listener(::onOneHandAction)
-            it.setDescriptions(getString(R.string.keyhack_one_hand_switch), getString(R.string.keyhack_one_hand_full))
+            it.setDescriptions(
+                getString(R.string.keyhack_one_hand_switch),
+                getString(R.string.keyhack_one_hand_full),
+                getString(R.string.keyhack_float),
+            )
         }
         frame.addView(bar, FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT))
         // FrameLayout stretches a match_parent child only when it has two, so the
@@ -336,6 +353,13 @@ class KeyHackImeService :
             }
         }
         return bar
+    }
+
+    private fun statusBarInset(insets: WindowInsets): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        insets.getInsets(WindowInsets.Type.statusBars()).top
+    } else {
+        @Suppress("DEPRECATION") // The only API before Android 11.
+        insets.systemWindowInsetTop
     }
 
     private fun navBarInset(insets: WindowInsets): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -360,6 +384,7 @@ class KeyHackImeService :
             shape = KeyboardThemes.shape(settings.theme)
         }
         oneHandBar?.applyColors(colors)
+        applyFloating()
         applyOneHanded()
         strip?.colors = colors
         searchResults?.colors = colors
@@ -1353,6 +1378,8 @@ class KeyHackImeService :
 
             id == "onehand" -> toggleOneHanded()
 
+            id == "float" -> toggleFloating()
+
             id == "incognito" -> {
                 incognito = !incognito
                 currentInputEditorInfo?.let { configure(it, true) }
@@ -1483,7 +1510,8 @@ class KeyHackImeService :
     private fun applyOneHanded() {
         val kv = keyboardView ?: return
         val bar = oneHandBar ?: return
-        val side = settings.oneHanded
+        // A floating keyboard is already small and movable.
+        val side = if (settings.floating) KeyHackSettings.ONE_HANDED_OFF else settings.oneHanded
         val kvParams = kv.layoutParams as FrameLayout.LayoutParams
         val barParams = bar.layoutParams as FrameLayout.LayoutParams
         if (side == KeyHackSettings.ONE_HANDED_OFF) {
@@ -1506,6 +1534,10 @@ class KeyHackImeService :
 
     private fun onOneHandAction(action: String) {
         val side = settings.oneHanded
+        if (action == OneHandBar.FLOAT) {
+            toggleFloating()
+            return
+        }
         val next =
             when (action) {
                 OneHandBar.SWITCH_SIDE -> if (side == "left") "right" else "left"
@@ -1521,6 +1553,142 @@ class KeyHackImeService :
         settings.edit { putString(KeyHackSettings.ONE_HANDED, next) }
         applyOneHanded()
         renderStrip()
+    }
+
+    // -------------------------------------------------------------- floating
+
+    private fun toggleFloating() {
+        settings.edit { putBoolean(KeyHackSettings.FLOATING, !settings.floating) }
+        applyFloating()
+        applyOneHanded()
+        renderStrip()
+    }
+
+    /**
+     * Floating: the input view takes the whole window, transparent, and the
+     * key column floats in it at the saved position; [onComputeInsets] tells
+     * the system that only the column takes touches and the app keeps its
+     * full size. Docked: the column at the bottom, as usual.
+     */
+    private fun applyFloating() {
+        val r = root ?: return
+        val col = keyColumn ?: return
+        val on = settings.floating
+        r.layoutParams?.let { lp ->
+            val h = if (on) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+            if (lp.height != h) {
+                lp.height = h
+                r.layoutParams = lp
+            }
+        }
+        val p = col.layoutParams as FrameLayout.LayoutParams
+        if (on) {
+            val screen = resources.displayMetrics
+            p.width = minOf(
+                (screen.widthPixels * FLOAT_WIDTH_FRACTION).toInt(),
+                (FLOAT_MAX_WIDTH_DP * screen.density).toInt(),
+            )
+            p.gravity = Gravity.TOP or Gravity.START
+        } else {
+            p.width = ViewGroup.LayoutParams.MATCH_PARENT
+            p.gravity = Gravity.NO_GRAVITY
+            p.leftMargin = 0
+            p.topMargin = 0
+        }
+        col.layoutParams = p
+        floatBar?.visibility = if (on) View.VISIBLE else View.GONE
+        floatBar?.colors = colors
+        val d = resources.displayMetrics.density
+        col.background = if (on) {
+            GradientDrawable().apply {
+                cornerRadius = FLOAT_RADIUS_DP * d
+                setColor(this@KeyHackImeService.colors.background)
+            }
+        } else {
+            null
+        }
+        col.clipToOutline = on
+        col.elevation = if (on) FLOAT_ELEVATION_DP * d else 0f
+        positionFloating()
+    }
+
+    /** Places the floating column from the saved fractions, once sizes are known. */
+    private fun positionFloating() {
+        if (!settings.floating || floatDragStart != null) return
+        val r = root ?: return
+        val col = keyColumn ?: return
+        if (r.height == 0 || col.height == 0) return
+        val (freeW, freeH) = floatRoom(r, col)
+        setFloatMargins(
+            col,
+            (settings.floatX * freeW).roundToInt(),
+            floatTopInset + (settings.floatY * freeH).roundToInt(),
+        )
+    }
+
+    /** Room left beside and above the column (never negative). */
+    private fun floatRoom(r: View, col: View): Pair<Int, Int> {
+        val w = r.width - col.width
+        val h = r.height - r.paddingBottom - floatTopInset - col.height
+        return w.coerceAtLeast(0) to h.coerceAtLeast(0)
+    }
+
+    private fun setFloatMargins(col: View, left: Int, top: Int) {
+        val p = col.layoutParams as FrameLayout.LayoutParams
+        if (p.leftMargin == left && p.topMargin == top) return
+        p.leftMargin = left
+        p.topMargin = top
+        col.layoutParams = p
+    }
+
+    private val floatListener =
+        object : FloatBar.Listener {
+            override fun onFloatDrag(dx: Float, dy: Float) {
+                val r = root ?: return
+                val col = keyColumn ?: return
+                val start = floatDragStart ?: run {
+                    val p = col.layoutParams as FrameLayout.LayoutParams
+                    (p.leftMargin to p.topMargin).also { floatDragStart = it }
+                }
+                val (freeW, freeH) = floatRoom(r, col)
+                setFloatMargins(
+                    col,
+                    (start.first + dx.roundToInt()).coerceIn(0, freeW),
+                    (start.second + dy.roundToInt()).coerceIn(floatTopInset, floatTopInset + freeH),
+                )
+            }
+
+            override fun onFloatDragEnd() {
+                floatDragStart = null
+                val r = root ?: return
+                val col = keyColumn ?: return
+                val (freeW, freeH) = floatRoom(r, col)
+                val p = col.layoutParams as FrameLayout.LayoutParams
+                val fx = if (freeW > 0) p.leftMargin.toFloat() / freeW else KeyHackSettings.DEFAULT_FLOAT_X
+                val fy = if (freeH > 0) (p.topMargin - floatTopInset).toFloat() / freeH else 1f
+                settings.edit {
+                    putFloat(KeyHackSettings.FLOAT_X, fx.coerceIn(0f, 1f))
+                    putFloat(KeyHackSettings.FLOAT_Y, fy.coerceIn(0f, 1f))
+                }
+            }
+
+            override fun onFloatDock() = toggleFloating()
+        }
+
+    override fun onComputeInsets(outInsets: Insets) {
+        super.onComputeInsets(outInsets)
+        val r = root ?: return
+        val col = keyColumn ?: return
+        if (!settings.floating || !r.isShown) return
+        val loc = IntArray(2)
+        r.getLocationInWindow(loc)
+        val bottom = loc[1] + r.height
+        // No room taken from the app: it keeps its size, the keyboard floats over it.
+        outInsets.contentTopInsets = bottom
+        outInsets.visibleTopInsets = bottom
+        col.getLocationInWindow(loc)
+        outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+        outInsets.touchableRegion.set(loc[0], loc[1], loc[0] + col.width, loc[1] + col.height)
     }
 
     private fun currentGifProvider(): GifProvider? =
@@ -1913,6 +2081,7 @@ class KeyHackImeService :
         add(PaletteEntry("t:mode", "DEV " + getString(R.string.keyhack_cmd_mode), "simple advanced dev terminal"))
         if (advanced) add(PaletteEntry("t:pc", "PC " + getString(R.string.keyhack_cmd_pc), "pc layout terminal"))
         add(PaletteEntry("t:onehand", "✋ " + getString(R.string.keyhack_cmd_onehand), "one hand"))
+        add(PaletteEntry("t:float", "⧉ " + getString(R.string.keyhack_float), "floating flutuante move"))
         for (a in EditAction.entries) {
             add(PaletteEntry("e:${a.name}", getString(a.label), a.name.lowercase().replace('_', ' ')))
         }
@@ -2127,6 +2296,10 @@ class KeyHackImeService :
         const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
         const val EXTRA_EDIT_SNIPPETS = "com.reinanbr.keyhack.EDIT_SNIPPETS"
         private const val SNIPPET_CHIP_WEIGHT = 2f
+        private const val FLOAT_WIDTH_FRACTION = 0.8f
+        private const val FLOAT_MAX_WIDTH_DP = 440
+        private const val FLOAT_RADIUS_DP = 14f
+        private const val FLOAT_ELEVATION_DP = 8f
 
         /** After these, a glided word gets a space before it. */
         private val SPACE_AFTER = setOf('.', ',', '!', '?', ';', ':')

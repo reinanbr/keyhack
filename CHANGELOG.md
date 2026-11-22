@@ -55,6 +55,11 @@ All notable changes to KeyHack are listed here. The format follows
   alternatives show in the suggestion bar. A space goes in before the next
   glided word; one backspace removes a glided word. A short swipe up on a
   key still types its corner symbol. On by default; can be turned off.
+- Floating keyboard: a smaller keyboard that floats over the app, moved
+  by the handle on top (▭ on the handle docks it back). The app keeps
+  its full size and stays touchable around the keyboard; the position is
+  remembered. Turn it on from the ✋ one-handed bar (⧉), the command
+  palette or settings.
 - Vibration length setting (0–60 ms). 0 keeps the system's keyboard
   vibration, which some phones mute along with touch feedback.
 

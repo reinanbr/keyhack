@@ -66,4 +66,6 @@
   <string name="keyhack_cmd_switch">Switch keyboard</string>
   <string name="keyhack_cmd_hide">Hide keyboard</string>
   <string name="keyhack_glide_none">No word for that glide</string>
+  <string name="keyhack_float">Floating keyboard</string>
+  <string name="keyhack_float_handle">Drag to move the keyboard; ▭ docks it</string>
 </resources>

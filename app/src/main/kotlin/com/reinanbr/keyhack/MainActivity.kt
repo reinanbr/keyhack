@@ -416,6 +416,11 @@ private fun FeedbackRows(p: Prefs) {
             "right" to R.string.one_handed_right,
         ).mapValues { stringResource(it.value) },
     ) { v -> p.set { putString(K.ONE_HANDED, v) } }
+    SwitchRow(
+        stringResource(R.string.pref_floating),
+        stringResource(R.string.pref_floating_summary),
+        p.bool(K.FLOATING, false),
+    ) { p.set { putBoolean(K.FLOATING, it) } }
     val haptics = p.bool(K.HAPTICS, true)
     SwitchRow(
         stringResource(R.string.pref_haptics),

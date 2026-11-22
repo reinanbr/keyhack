@@ -14,7 +14,7 @@ import com.reinanbr.keyhack.theme.KeyboardColors
  */
 class OneHandBar(context: Context) : LinearLayout(context) {
     fun interface Listener {
-        /** [action] is [SWITCH_SIDE] or [FULL_WIDTH]. */
+        /** [action] is [SWITCH_SIDE], [FULL_WIDTH] or [FLOAT]. */
         fun onOneHandAction(action: String)
     }
 
@@ -22,24 +22,28 @@ class OneHandBar(context: Context) : LinearLayout(context) {
 
     private val switchSide = button("⇄", SWITCH_SIDE)
     private val fullWidth = button("⤢", FULL_WIDTH)
+    private val float = button("⧉", FLOAT)
 
     init {
         orientation = VERTICAL
         gravity = Gravity.CENTER
         addView(switchSide, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(fullWidth, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        addView(float, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
     }
 
     /** Labels for TalkBack, from the IME's localized strings. */
-    fun setDescriptions(switchSideLabel: String, fullWidthLabel: String) {
+    fun setDescriptions(switchSideLabel: String, fullWidthLabel: String, floatLabel: String) {
         switchSide.contentDescription = switchSideLabel
         fullWidth.contentDescription = fullWidthLabel
+        float.contentDescription = floatLabel
     }
 
     fun applyColors(colors: KeyboardColors) {
         setBackgroundColor(colors.background)
         switchSide.setTextColor(colors.secondaryLabel)
         fullWidth.setTextColor(colors.secondaryLabel)
+        float.setTextColor(colors.secondaryLabel)
     }
 
     private fun button(icon: String, action: String) = TextView(context).apply {
@@ -56,6 +60,7 @@ class OneHandBar(context: Context) : LinearLayout(context) {
     companion object {
         const val SWITCH_SIDE = "switch"
         const val FULL_WIDTH = "full"
+        const val FLOAT = "float"
         private const val ICON_SP = 28f
     }
 }
