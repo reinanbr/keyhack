@@ -2,12 +2,12 @@
 # Copyright 2026 The KeyHack Authors. SPDX-License-Identifier: Apache-2.0
 """Converts an AOSP LatinIME *.combined.gz wordlist into KeyHack's dictionary.
 
-Usage: python3 -I tools/gen_dict.py <input.combined.gz> <output.dict.gz>
+Usage: python3 -I tools/gen_dict.py <input.combined.gz> <output.dict>
 
 Source wordlists (Apache-2.0) come from
 https://android.googlesource.com/platform/packages/inputmethods/LatinIME/+/refs/heads/main/dictionaries/
 
-Output: gzip'd UTF-8 text, one entry per line, sorted by lowercase word:
+Output: plain UTF-8 text (F-Droid's scanner refuses archives), one entry per line, sorted by lowercase word:
   word<TAB>freq             a valid word; freq 0..255 (0 = valid, never suggested)
   typo<TAB>-<TAB>correction  a whitelisted autocorrection (e.g. musica -> música)
 """
@@ -44,8 +44,8 @@ def main(src: str, dst: str) -> None:
         words.pop(typo, None)
     out = [f"{w}\t{f}" for w, f in words.items()] + [f"{t}\t-\t{c}" for t, c in fixes.items()]
     out.sort(key=lambda line: (line.split("\t", 1)[0].lower(), line))
-    with gzip.GzipFile(dst, "wb", mtime=0) as g:
-        g.write(("\n".join(out) + "\n").encode("utf-8"))
+    with open(dst, "w", encoding="utf-8", newline="\n") as g:
+        g.write("\n".join(out) + "\n")
     print(f"{dst}: {len(words)} words, {len(fixes)} corrections")
 
 

@@ -3,7 +3,7 @@
 """Builds KeyHack's next-word model (bigrams and trigrams) from conversation-style
 sentences.
 
-Usage: python3 -I tools/gen_ngrams.py <sentences.tsv.bz2> <lang.dict.gz> [<lang.chat>] <out.ngram.gz>
+Usage: python3 -I tools/gen_ngrams.py <sentences.tsv.bz2> <lang.dict> [<lang.chat>] <out.ngram>
 
 Source: Tatoeba per-language exports (CC BY 2.0 FR), e.g.
 https://downloads.tatoeba.org/exports/per_language/por/por_sentences.tsv.bz2
@@ -20,7 +20,8 @@ Rules:
   repeats a few names and places very often; they must not be predicted.
 - Pruned to frequent contexts and their best followers.
 
-Output: gzip'd UTF-8, one context per line, sorted:
+Output: plain UTF-8 text (F-Droid's scanner refuses archives), one context
+per line, sorted:
   context<TAB>word:score word:score ...
 where context is one word (bigram) or two words separated by a space
 (trigram), and score 1..255 is the follower's conditional probability on a
@@ -28,7 +29,6 @@ log scale (255 = always, 170 = 10%, 85 = 1%).
 """
 import bz2
 import collections
-import gzip
 import math
 import re
 import sys
@@ -50,9 +50,9 @@ KEEP_CAPITALIZED = {
 }
 
 
-def load_vocab(dict_gz, chat):
+def load_vocab(dict_path, chat):
     vocab = set()
-    with gzip.open(dict_gz, "rt", encoding="utf-8") as f:
+    with open(dict_path, encoding="utf-8") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
             if len(parts) == 2 and parts[1].isdigit() and int(parts[1]) > 0:
@@ -143,7 +143,7 @@ def main(src, dict_gz, chat, dst):
         if total >= MIN_TRIGRAM_CONTEXT and (row := best(f, total)):
             lines.append(f"{ctx}\t{row}")
     lines.sort()
-    with gzip.open(dst, "wt", encoding="utf-8", compresslevel=9) as out:
+    with open(dst, "w", encoding="utf-8", newline="\n") as out:
         out.write("# KeyHack next-word model. Counts derived from Tatoeba (CC BY 2.0 FR).\n")
         out.write("\n".join(lines) + "\n")
     print(f"{dst}: {len(lines)} contexts, {len(names)} names skipped", file=sys.stderr)

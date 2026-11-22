@@ -1,0 +1,34 @@
+KeyHack é um teclado de código aberto que junta um layout completo de PC, para terminal, SSH, Vim e código, com o que se espera de um teclado de celular: sugestões, autocorreção, emoji, figurinhas e GIFs.
+
+Todo teclado pode ler tudo o que você digita, então o KeyHack foi feito para ser confiável de um jeito que dá para conferir: sem analytics, sem relatórios de falha, sem telemetria, aprendizado que guarda só a contagem das palavras, e um único uso de rede, fácil de auditar (a busca de GIFs).
+
+<b>Para terminal e código</b>
+<ul>
+<li>Linha numérica e uma linha dev configurável: Esc, Tab, Ctrl, Alt, setas, Home, End</li>
+<li>Layout de PC completo em 5 linhas, com F1–F12, PgUp/PgDn, Ins, Del</li>
+<li>Ctrl/Alt/Meta fixos, enviados como teclas de verdade: Ctrl+C funciona no Termux</li>
+<li>O modo PC liga sozinho em apps de terminal e SSH</li>
+<li>Ferramentas dev: camelCase/snake_case, Base64, escape de URL e HTML, JSON, hashes, UUIDs</li>
+<li>Snippets com atalhos digitados, e uma paleta de comandos</li>
+</ul>
+
+<b>Para conversar</b>
+<ul>
+<li>Dicionários de português do Brasil e inglês, autocorreção com desfazer, sugestão da próxima palavra e de frases</li>
+<li>Sugestões de gramática e concordância no próprio celular ("nós vai" → "nós vamos", "os menino" → "os meninos")</li>
+<li>Digitação por deslize, decodificada no celular</li>
+<li>Emoji com busca, tons de pele e Unicode 18, emoji sugeridos para a palavra digitada, mais de 200 kaomoji</li>
+<li>Figurinhas: importe suas imagens (GIFs viram figurinhas animadas), mande qualquer emoji como figurinha e adicione seus pacotes ao WhatsApp</li>
+<li>Busca de GIFs com a sua própria chave da API do Giphy</li>
+<li>Temas (claro, escuro, AMOLED, Material You, visual do iOS ou suas cores), modo uma mão e teclado flutuante</li>
+</ul>
+
+<b>Privacidade</b>
+<ul>
+<li>Nada é aprendido nem sugerido em campos de senha, em apps que pedem aprendizado não personalizado ou no modo anônimo</li>
+<li>Histórico da área de transferência opcional, criptografado e que expira</li>
+<li>Sem backup na nuvem do Android; o backup manual é sempre criptografado com a sua senha</li>
+<li>A rede só é usada na busca de GIFs, e só quando você abre o painel de GIFs. O APK "offline", na página de versões do projeto, não tem permissão de rede</li>
+</ul>
+
+A busca de GIFs usa o Giphy, um serviço de rede não livre; por isso o app tem o aviso NonFreeNet. Todo o resto funciona sem ele.

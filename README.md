@@ -16,11 +16,11 @@ learning that stores word counts only, and a single, auditable network use
 > and the [roadmap](#roadmap).
 
 <p>
-  <img src="docs/screenshots/suggestions.png" width="19%" alt="Suggestions while typing in Portuguese">
-  <img src="docs/screenshots/emoji.png" width="19%" alt="Emoji panel">
-  <img src="docs/screenshots/stickers.png" width="19%" alt="Emoji stickers panel">
-  <img src="docs/screenshots/terminal.png" width="19%" alt="Advanced mode with Ctrl, Alt and arrows in Termux">
-  <img src="docs/screenshots/settings.png" width="19%" alt="Settings screen">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_suggestions.png" width="19%" alt="Suggestions while typing in Portuguese">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_emoji.png" width="19%" alt="Emoji panel">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_stickers.png" width="19%" alt="Emoji stickers panel">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_terminal.png" width="19%" alt="Advanced mode with Ctrl, Alt and arrows in Termux">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_settings.png" width="19%" alt="Settings screen">
 </p>
 
 ## Download
@@ -213,7 +213,7 @@ the diff:
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |
-| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, `offline` flavor without network ✅, encrypted backup export ✅, F-Droid | partial |
+| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, `offline` flavor without network ✅, encrypted backup export ✅, F-Droid metadata ✅ ([submission](docs/fdroid/README.md) pending) | ✅ |
 
 ## Contributing and security
 

@@ -1,0 +1,35 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: GIF search uses the Giphy API, with the user's own key, and only when the
+      GIF panel is opened.
+    pt-BR: A busca de GIFs usa a API do Giphy, com a chave do próprio usuário, e só
+      quando o painel de GIFs é aberto.
+Categories:
+  - Keyboard & IME
+License: Apache-2.0
+AuthorName: reinanbr
+SourceCode: https://github.com/reinanbr/keyhack
+IssueTracker: https://github.com/reinanbr/keyhack/issues
+Changelog: https://github.com/reinanbr/keyhack/blob/HEAD/CHANGELOG.md
+
+AutoName: KeyHack
+
+RepoType: git
+Repo: https://github.com/reinanbr/keyhack.git
+
+Builds:
+  - versionName: 0.3.0
+    versionCode: 3
+    commit: v0.3.0
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-21-jdk-headless
+      - update-java-alternatives -a java-1.21.0-openjdk-amd64
+    gradle:
+      - online
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.3.0
+CurrentVersionCode: 3

@@ -99,6 +99,10 @@ All notable changes to KeyHack are listed here. The format follows
 
 ### Changed
 
+- F-Droid metadata: store listing in `fastlane/metadata/android` (English
+  and Brazilian Portuguese, icon, screenshots) and a build recipe in
+  `docs/fdroid`. Dictionaries and next-word models are now kept as plain
+  text, since F-Droid's scanner refuses archives; the APK is unchanged.
 - More emoji in the suggestion bar: up to three for the word you are typing
   ("amor" → ❤️ 😍 🥰, "kkkk" → 😂 🤣 😆), and two more after you finish it
   (tap one to add it after the space). A chat word list (Brazilian slang

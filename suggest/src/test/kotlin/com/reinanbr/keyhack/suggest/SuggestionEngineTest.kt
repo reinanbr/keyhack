@@ -1,7 +1,6 @@
 package com.reinanbr.keyhack.suggest
 
 import java.io.File
-import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -152,7 +151,7 @@ class SuggestionEngineTest {
                     "extra",
                     "fixes",
                 ).map { File("src/main/assets/dict/$lang.$it").bufferedReader() }
-                GZIPInputStream(File("src/main/assets/dict/$lang.dict.gz").inputStream()).bufferedReader().use { main ->
+                File("src/main/assets/dict/$lang.dict").bufferedReader().use { main ->
                     try {
                         Dictionary.read(lang, main, *extras.toTypedArray())
                     } finally {
@@ -165,7 +164,7 @@ class SuggestionEngineTest {
         /** The shipped next-word models, as the app loads them. */
         val shippedNgrams: Map<String, NgramModel> by lazy {
             listOf("en", "pt").associateWith { lang ->
-                GZIPInputStream(File("src/main/assets/ngram/$lang.ngram.gz").inputStream()).bufferedReader()
+                File("src/main/assets/ngram/$lang.ngram").bufferedReader()
                     .use { NgramModel.read(it, lang) }
             }
         }

@@ -13,7 +13,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
-import java.util.zip.GZIPInputStream
 
 /**
  * Runs [SuggestionEngine] on a dedicated background thread so the main thread
@@ -88,16 +87,11 @@ class Suggester(context: Context) {
         }
     }
 
-    // The repository keeps <name>.gz assets, but aapt un-gzips ".gz" assets
-    // while packaging, so the APK holds the plain file (the zip compresses it
-    // anyway). Read whichever exists.
-    private fun <T> readAsset(path: String, parse: (BufferedReader) -> T): T? {
-        val plain = runCatching { app.assets.open(path).bufferedReader().use(parse) }
-        if (plain.isSuccess) return plain.getOrNull()
-        return runCatching {
-            app.assets.open("$path.gz").use { raw -> GZIPInputStream(raw, BUFFER).bufferedReader().use(parse) }
-        }.getOrNull()
-    }
+    // Plain text in the repository and the APK (the APK's zip compresses it).
+    // F-Droid's scanner refuses archives in the source, and aapt un-gzipped
+    // ".gz" assets anyway.
+    private fun <T> readAsset(path: String, parse: (BufferedReader) -> T): T? =
+        runCatching { app.assets.open(path).bufferedReader().use(parse) }.getOrNull()
 
     /**
      * The dictionary plus KeyHack's own lists: chat words ("vc", "lol"),
@@ -255,7 +249,6 @@ class Suggester(context: Context) {
     }
 
     private companion object {
-        const val BUFFER = 64 * 1024
         const val SYNC_TIMEOUT_MS = 120L
         const val SAVE_EVERY = 20
         val EXTRA_LISTS = listOf("chat", "extra", "fixes")

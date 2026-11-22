@@ -1,0 +1,34 @@
+KeyHack is an open source keyboard that combines a full PC layout for terminals, SSH, Vim and code with what people expect from a phone keyboard: suggestions, autocorrect, emoji, stickers and GIFs.
+
+Every keyboard can read everything you type, so KeyHack is built to be verifiably trustworthy: no analytics, no crash reporting, no telemetry, learning that stores word counts only, and one auditable network use (GIF search).
+
+<b>For terminals and code</b>
+<ul>
+<li>Number row and a configurable dev row: Esc, Tab, Ctrl, Alt, arrows, Home, End</li>
+<li>Full 5-row PC layout with F1–F12, PgUp/PgDn, Ins, Del</li>
+<li>Sticky Ctrl/Alt/Meta sent as real key events, so Ctrl+C works in Termux</li>
+<li>PC mode turns on by itself in terminal and SSH apps</li>
+<li>Dev tools: camelCase/snake_case, Base64, URL and HTML escaping, JSON, hashes, UUIDs</li>
+<li>Snippets with typed shortcuts, and a command palette</li>
+</ul>
+
+<b>For chat</b>
+<ul>
+<li>English and Brazilian Portuguese dictionaries, autocorrect with undo, next-word and phrase suggestions</li>
+<li>Grammar and agreement suggestions on the phone ("nós vai" → "nós vamos", "a apple" → "an apple")</li>
+<li>Glide typing, decoded on the phone</li>
+<li>Emoji with search, skin tones and Unicode 18, emoji suggested for the word you type, over 200 kaomoji</li>
+<li>Stickers: import your images (GIFs become animated stickers), send any emoji as a sticker, and add your own sticker packs to WhatsApp</li>
+<li>GIF search with your own Giphy API key</li>
+<li>Themes (light, dark, AMOLED, Material You, iOS look, or your own colors), one-handed and floating modes</li>
+</ul>
+
+<b>Privacy</b>
+<ul>
+<li>Nothing is learned or suggested in password fields, in apps that ask for no personalized learning, or in incognito mode</li>
+<li>Opt-in clipboard history, encrypted and expiring</li>
+<li>No Android cloud backup; a manual backup file is always encrypted with your password</li>
+<li>The network is used only for GIF search, and only when you open the GIF panel. The "offline" APK on the project's releases page has no network permission at all</li>
+</ul>
+
+GIF search uses Giphy, a non-free network service, which is why this app is marked NonFreeNet. Everything else works without it.

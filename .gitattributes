@@ -1,0 +1,4 @@
+# Generated word data (tools/gen_dict.py, tools/gen_ngrams.py). Plain text,
+# since F-Droid's scanner refuses archives in the source, but too big to diff.
+suggest/src/main/assets/dict/*.dict -diff
+suggest/src/main/assets/ngram/*.ngram -diff

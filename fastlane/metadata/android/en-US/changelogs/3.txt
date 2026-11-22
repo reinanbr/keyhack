@@ -1,0 +1,6 @@
+• Glide typing, grammar and agreement suggestions, phrase suggestions
+• Clipboard history (opt-in, encrypted), snippets and a command palette
+• Floating keyboard, theme editor, slide Delete to erase words
+• Your own sticker packs in WhatsApp; more emoji in the bar; Unicode 18; 200+ kaomoji
+• Encrypted backup of settings, learned words and snippets
+• An "offline" APK with no network permission
