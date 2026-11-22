@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reinanbr.keyhack.emoji.EmojiData
 import com.reinanbr.keyhack.emoji.EmojiFont
-import com.reinanbr.keyhack.ime.ui.EmojiStore
+import com.reinanbr.keyhack.emoji.EmojiStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

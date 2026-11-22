@@ -128,7 +128,7 @@
   <string name="layout_pc">PC (always)</string>
   <string name="lang_en">English</string>
   <string name="lang_pt">Portuguese (Brazil)</string>
-  <string name="privacy_body">No analytics, no crash reporting, no telemetry. Learned words are stored in a private file that is never backed up. Typing in password fields and in apps that ask for no personalized learning is never learned. Use the 🕶 button on the toolbar for incognito typing.</string>
+  <string name="privacy_body">No analytics, no crash reporting, no telemetry. Learned words are stored in a private file that never goes into Android\'s backup; they leave the phone only if you export a backup, encrypted with your password. Typing in password fields and in apps that ask for no personalized learning is never learned. Use the 🕶 button on the toolbar for incognito typing.</string>
   <string name="help_title">Tips</string>
   <string name="help_body">• DEV on the keyboard bar switches between the simple keyboard (chat) and the advanced one (Ctrl, Alt, arrows, terminal).\n• Swipe up on a key to type the symbol in its corner (@ _ / \" and more; in advanced mode also { } [ ]); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, 🖼 stickers, 📋 clipboard history, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.\n• Just copied something? It appears in the bar (📋) to paste with one tap.\n• ✋ one-handed mode; its ⧉ button makes the keyboard float (drag it by the handle, ▭ docks it).\n• Glide typing: slide across a word\'s letters without lifting your finger.\n• Slide ⌫ to the left to delete whole words (lift to delete, ↶ to undo).\n• &lt;/&gt; panel: Snippets tab (saved texts; typing a snippet\'s shortcut offers it in the bar) and 🔍 to search every command.\n• A ✓ chip in the bar fixes grammar in the words you just typed (\"nós vai\" → \"nós vamos\"); tap it to apply.\n• Suggestions agree with the subject (after \"nós\": \"estamos\", \"temos\"), and the bar may offer a whole phrase (\"obrigado\" → \"por me ajudar\").</string>
   <string name="section_clipboard">Clipboard</string>
@@ -170,4 +170,22 @@
   <string name="color_saturation">Saturation</string>
   <string name="color_brightness">Brightness</string>
   <string name="gif_offline_build">This is the offline build: it has no network code and no internet permission, so GIF search is not included. Everything else works the same.</string>
+  <string name="backup_title">Backup</string>
+  <string name="backup_body">Save your settings, learned words, snippets and recent emoji to a file, to move to another phone or reinstall. The file is encrypted with a password you choose: without it nobody can open it, not even you. Clipboard history, stickers and the GIF API key are left out.</string>
+  <string name="backup_export">Export</string>
+  <string name="backup_restore">Restore</string>
+  <string name="backup_password_title">Backup password</string>
+  <string name="backup_password_help">Minimum length: %1$d. Keep it safe: without the password the backup cannot be restored.</string>
+  <string name="backup_password">Password</string>
+  <string name="backup_password_again">Repeat the password</string>
+  <string name="backup_password_mismatch">The passwords do not match</string>
+  <string name="backup_choose_file">Choose where to save</string>
+  <string name="backup_exported">Backup saved</string>
+  <string name="backup_export_failed">Could not save the backup</string>
+  <string name="backup_restore_warning">This replaces your settings, learned words, snippets and recent emoji with the ones in the file.</string>
+  <string name="backup_restore_action">Restore</string>
+  <string name="backup_wrong_password">Wrong password, or the file was changed</string>
+  <string name="backup_not_a_backup">This file is not a KeyHack backup, or it is from a newer version</string>
+  <string name="backup_read_failed">Could not read the file</string>
+  <string name="backup_restored">Backup restored. Settings: %1$d · learned words: %2$d · snippets: %3$d</string>
 </resources>

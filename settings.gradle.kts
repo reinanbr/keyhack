@@ -32,6 +32,7 @@ include(
     ":commit",
     ":devtools",
     ":clipboard",
+    ":backup",
     ":security",
     ":data",
     ":theme",

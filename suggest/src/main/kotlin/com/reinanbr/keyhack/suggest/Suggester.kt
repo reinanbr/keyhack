@@ -28,7 +28,8 @@ class Suggester(context: Context) {
     private val thread = HandlerThread("keyhack-suggest", Process.THREAD_PRIORITY_DEFAULT).apply { start() }
     private val worker = Handler(thread.looper)
     private val main = Handler(Looper.getMainLooper())
-    private val historyFile = File(app.noBackupFilesDir, "learned.tsv")
+    private val historyFile = LearnedFiles.learned(app)
+    private val restoredFile = LearnedFiles.restored(app)
 
     private val history = UserHistory()
     private val engine = SuggestionEngine(emptyList(), history)
@@ -44,7 +45,23 @@ class Suggester(context: Context) {
 
     init {
         worker.post {
-            if (historyFile.isFile) runCatching { historyFile.bufferedReader().use(history::read) }
+            LearnedFiles.adopt(historyFile, restoredFile)
+            readHistory()
+        }
+    }
+
+    private fun readHistory() {
+        if (historyFile.isFile) runCatching { historyFile.bufferedReader().use(history::read) }
+    }
+
+    /** Takes up learned words restored from a backup ([LearnedFiles.stage]), replacing what is in memory. */
+    fun reloadHistory() {
+        worker.post {
+            if (LearnedFiles.adopt(historyFile, restoredFile)) {
+                unsaved = 0
+                history.clear()
+                readHistory()
+            }
         }
     }
 
@@ -212,6 +229,7 @@ class Suggester(context: Context) {
     fun clearHistory() {
         worker.post {
             history.clear()
+            restoredFile.delete()
             historyFile.delete()
         }
     }

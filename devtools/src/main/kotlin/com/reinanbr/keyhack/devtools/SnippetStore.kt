@@ -21,10 +21,18 @@ class SnippetStore private constructor(context: Context, private val crypter: Cr
     private val listeners = LinkedHashSet<() -> Unit>()
     private var loaded = false
 
+    /** A restore that came before the file finished loading; it wins over the file. */
+    private var replaced = false
+
     init {
         io.execute {
             val bytes = runCatching { crypter.decrypt(file.readBytes()) }.getOrNull()
             main.post {
+                if (replaced) {
+                    loaded = true
+                    changed()
+                    return@post
+                }
                 val early = list.all()
                 bytes?.let(list::decode)
                 for (s in early) list.add(s.trigger, s.text)
@@ -45,6 +53,16 @@ class SnippetStore private constructor(context: Context, private val crypter: Cr
 
     fun remove(id: Long) {
         list.remove(id)
+        changed()
+    }
+
+    /** Snippets as [SnippetList.encode] writes them, for a backup. */
+    fun encode(): ByteArray = list.encode()
+
+    /** Replaces every snippet with [encoded] (from a backup; checked by [SnippetList.decode]). */
+    fun replaceAll(encoded: ByteArray) {
+        list.decode(encoded)
+        replaced = true
         changed()
     }
 

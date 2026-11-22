@@ -85,6 +85,9 @@ install; use it only for testing.
   HTML escaping, JSON pretty/minify, MD5/SHA hashes, UUID v4/v7, timestamps.
 - **Privacy controls:** incognito mode; nothing learned or suggested in
   password fields or fields that ask for no personalized learning.
+- **Backup:** export settings, learned words, snippets and recent emoji to a
+  file encrypted with your password, and restore them on a new phone
+  ([ADR 0007](docs/adr/0007-encrypted-backup-export.md)).
 
 ## Security boundary: one app, one network use
 
@@ -127,7 +130,7 @@ your IP address.
 | 3 | Malicious files (layouts, themes, snippets, dictionaries, media) | Size caps, magic-byte MIME sniffing, strict schemas, copy-then-process, memory-safe decoders, fuzzed parsers |
 | 4 | Network attackers | HTTPS only, no cleartext, no user CAs, provider host allowlist; responses size-capped and parsed as untrusted |
 | 5 | Compromised dependencies or CI | Gradle dependency verification (checksums + PGP), SHA-pinned Actions, least-privilege workflows, reproducible builds, SBOM |
-| 6 | Accidental leakage | No cloud backup or device transfer; release builds strip `android.util.Log`; opt-in, encrypted, expiring clipboard history; no learning in sensitive fields |
+| 6 | Accidental leakage | No cloud backup or device transfer; manual backup export only, always encrypted with the user's password (ADR 0007); release builds strip `android.util.Log`; opt-in, encrypted, expiring clipboard history; no learning in sensitive fields |
 
 **Sensitive fields** (password input types, `TYPE_TEXT_FLAG_NO_SUGGESTIONS`,
 `IME_FLAG_NO_PERSONALIZED_LEARNING`, or incognito) get no suggestions, no
@@ -210,7 +213,7 @@ the diff:
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |
-| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, `offline` flavor without network ✅, backup export, F-Droid | partial |
+| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, `offline` flavor without network ✅, encrypted backup export ✅, F-Droid | partial |
 
 ## Contributing and security
 

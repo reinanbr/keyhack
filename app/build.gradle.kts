@@ -66,6 +66,8 @@ dependencies {
     implementation(project(":stickers"))
     implementation(project(":clipboard"))
     implementation(project(":devtools"))
+    implementation(project(":suggest"))
+    implementation(project(":backup"))
     implementation(project(":theme"))
     implementation(project(":media"))
     "onlineImplementation"(project(":net"))

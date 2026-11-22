@@ -66,7 +66,7 @@ import com.reinanbr.keyhack.clipboard.ClipboardStore
 import com.reinanbr.keyhack.data.KeyHackSettings
 import com.reinanbr.keyhack.media.GifNetwork
 import com.reinanbr.keyhack.stickers.StickerStore
-import java.io.File
+import com.reinanbr.keyhack.suggest.LearnedFiles
 import kotlin.math.roundToInt
 import com.reinanbr.keyhack.data.KeyHackSettings.Companion as K
 
@@ -153,7 +153,7 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this, R.string.clipboard_deleted, Toast.LENGTH_SHORT).show()
                     },
                     onClearLearning = {
-                        File(noBackupFilesDir, "learned.tsv").delete()
+                        LearnedFiles.delete(this)
                         settings.edit { putLong(LEARNING_CLEAR, System.currentTimeMillis()) }
                         Toast.makeText(this, R.string.pref_clear_learning_done, Toast.LENGTH_SHORT).show()
                     },
@@ -295,6 +295,7 @@ private fun SettingsScreen(
             StickerSection(stickerCount, onImportStickers, onDeleteStickers) {
                 StickerPacksSection(stickers, stickerCount)
             }
+            BackupSection()
             Section(stringResource(R.string.section_privacy)) {
                 Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium)
             }
@@ -378,13 +379,13 @@ private fun KeyboardSection(p: Prefs) {
         SliderRow(
             stringResource(R.string.pref_height),
             p.int(K.HEIGHT, K.DEFAULT_HEIGHT),
-            70..140,
+            K.HEIGHT_RANGE,
             "%",
         ) { p.set { putInt(K.HEIGHT, it) } }
         SliderRow(
             stringResource(R.string.pref_long_press),
             p.int(K.LONG_PRESS, K.DEFAULT_LONG_PRESS),
-            150..700,
+            K.LONG_PRESS_RANGE,
             " ms",
         ) {
             p.set { putInt(K.LONG_PRESS, it) }

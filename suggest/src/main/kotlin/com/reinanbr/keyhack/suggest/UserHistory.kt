@@ -97,24 +97,49 @@ class UserHistory(private val maxWords: Int = MAX_WORDS, private val maxPairs: I
         dirty = false
     }
 
+    /**
+     * Reads what [write] wrote. The input may also come from a restored backup,
+     * so it is checked like untrusted data: bad lines, overlong words and
+     * nonpositive counts are skipped, counts are capped, and nothing past
+     * [maxWords] words or [maxPairs] pairs is kept.
+     */
     fun read(input: BufferedReader) {
         clear()
         input.forEachLine { line ->
             val f = line.split('\t')
             when {
-                f.size == WORD_FIELDS && f[0] == "w" -> f[2].toIntOrNull()?.let { words[f[1]] = it }
+                f.size == WORD_FIELDS && f[0] == "w" -> {
+                    val k = keyOf(f[1]) ?: return@forEachLine
+                    val c = countOf(f[2]) ?: return@forEachLine
+                    if (k in words || words.size < maxWords) words[k] = c
+                }
 
-                f.size == ACCEPTED_FIELDS && f[0] == "a" -> accepted += f[1]
+                f.size == ACCEPTED_FIELDS && f[0] == "a" ->
+                    keyOf(f[1])?.let { if (accepted.size < maxWords) accepted += it }
 
-                f.size == PAIR_FIELDS && f[0] == "b" ->
-                    f[PAIR_FIELDS - 1].toIntOrNull()?.let {
-                        pairs.getOrPut(f[1]) { HashMap() }[f[2]] = it
+                f.size == PAIR_FIELDS && f[0] == "b" -> {
+                    val p = keyOf(f[1]) ?: return@forEachLine
+                    val k = keyOf(f[2]) ?: return@forEachLine
+                    val c = countOf(f[PAIR_FIELDS - 1]) ?: return@forEachLine
+                    val next = pairs[p]
+                    if (next != null && k in next) {
+                        next[k] = c
+                    } else if (pairCount < maxPairs) {
+                        pairs.getOrPut(p) { HashMap() }[k] = c
                         pairCount++
                     }
+                }
             }
         }
         dirty = false
     }
+
+    private fun keyOf(word: String): String? {
+        val k = Dictionary.key(word)
+        return k.takeIf { it.isNotBlank() && it.length <= Dictionary.MAX_WORD }
+    }
+
+    private fun countOf(text: String): Int? = text.toIntOrNull()?.takeIf { it > 0 }?.coerceAtMost(MAX_COUNT)
 
     companion object {
         private const val WORD_FIELDS = 3
@@ -123,5 +148,8 @@ class UserHistory(private val maxWords: Int = MAX_WORDS, private val maxPairs: I
         const val VALID_COUNT = 3
         const val MAX_WORDS = 20_000
         const val MAX_PAIRS = 60_000
+
+        /** A word typed this often is as learned as it gets; higher counts in a file are cut down. */
+        const val MAX_COUNT = 1_000_000
     }
 }

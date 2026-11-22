@@ -12,6 +12,7 @@ import android.widget.TextView
 import com.reinanbr.keyhack.emoji.Emoji
 import com.reinanbr.keyhack.emoji.EmojiData
 import com.reinanbr.keyhack.emoji.EmojiFont
+import com.reinanbr.keyhack.emoji.EmojiStore
 import com.reinanbr.keyhack.emoji.Kaomoji
 import com.reinanbr.keyhack.theme.KeyboardColors
 
@@ -252,32 +253,5 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         private const val WIDE_TEXT_SP = 15f
         private const val WIDE_MIN_SP = 8f
         private const val WIDE_PADDING_DP = 4f
-    }
-}
-
-/** Recently used emoji and per-emoji skin tones, kept in private preferences. */
-class EmojiStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("keyhack_emoji", Context.MODE_PRIVATE)
-
-    fun recents(): List<String> = prefs.getString(
-        RECENTS,
-        null,
-    )?.split('\n')?.filter { it.isNotEmpty() } ?: DEFAULT_RECENTS
-
-    fun addRecent(text: String) {
-        val list = (listOf(text) + recents().filter { it != text }).take(MAX_RECENTS)
-        prefs.edit().putString(RECENTS, list.joinToString("\n")).apply()
-    }
-
-    fun tone(emoji: String): Int = prefs.getInt("tone:$emoji", 0)
-
-    fun setTone(emoji: String, tone: Int) {
-        prefs.edit().putInt("tone:$emoji", tone).apply()
-    }
-
-    private companion object {
-        const val RECENTS = "recents"
-        const val MAX_RECENTS = 40
-        val DEFAULT_RECENTS = listOf("😂", "❤️", "👍", "😊", "🙏", "😭", "🔥", "😅", "🎉", "🤔", "👀", "✅")
     }
 }

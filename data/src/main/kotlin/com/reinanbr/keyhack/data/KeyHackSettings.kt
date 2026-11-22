@@ -139,6 +139,13 @@ class KeyHackSettings(context: Context) {
         const val DEFAULT_DEV_ROW = "esc tab ctrl alt left down up right home end"
         const val DEFAULT_HEIGHT = 100
         const val DEFAULT_LONG_PRESS = 300
+
+        /** What the settings screen's sliders allow. */
+        val HEIGHT_RANGE = 70..140
+        val LONG_PRESS_RANGE = 150..700
+
+        /** Written after a backup restore staged learned words; the keyboard reloads them. */
+        const val LEARNING_RESTORED = "learning_restored"
         const val DEFAULT_PC_APPS =
             "com.termux, com.sonelli.juicessh, com.server.auditor.ssh.client, org.connectbot, " +
                 "com.foxdebug.acode, com.foxdebug.acodefree, jackpal.androidterm, com.offsec.nhterm"

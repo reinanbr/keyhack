@@ -9,6 +9,12 @@ All notable changes to KeyHack are listed here. The format follows
 
 ### Added
 
+- Backup: Settings → Backup exports your settings, learned words, snippets
+  and recent emoji to one file, encrypted with a password you choose
+  (AES-256-GCM, key from PBKDF2 with 600,000 rounds), and restores them,
+  for example on a new phone. Files go through the system file picker, so
+  no storage permission is needed. The clipboard history, stickers and the
+  GIF API key are left out. A restore checks every value as untrusted data.
 - Clipboard history (opt-in): the 📋 button in the toolbar lists what you
   copied; tap to paste, long-press to pin or delete. Pinned items stay,
   the rest are deleted after 1 hour, 1 day or 7 days (settings). Stored

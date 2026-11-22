@@ -34,10 +34,10 @@ import com.reinanbr.keyhack.devtools.SnippetStore
 import com.reinanbr.keyhack.devtools.TextTransforms
 import com.reinanbr.keyhack.emoji.EmojiData
 import com.reinanbr.keyhack.emoji.EmojiFont
+import com.reinanbr.keyhack.emoji.EmojiStore
 import com.reinanbr.keyhack.ime.ui.ClipboardPanel
 import com.reinanbr.keyhack.ime.ui.EditAction
 import com.reinanbr.keyhack.ime.ui.EmojiPanel
-import com.reinanbr.keyhack.ime.ui.EmojiStore
 import com.reinanbr.keyhack.ime.ui.FloatBar
 import com.reinanbr.keyhack.ime.ui.GifPanel
 import com.reinanbr.keyhack.ime.ui.GifStrip
@@ -197,6 +197,8 @@ class KeyHackImeService :
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             when {
                 key == LEARNING_CLEAR_KEY -> suggester.clearHistory()
+
+                key == KeyHackSettings.LEARNING_RESTORED -> suggester.reloadHistory()
 
                 // Turning history off forgets everything it kept, pinned items included.
                 key == KeyHackSettings.CLIPBOARD_HISTORY && !settings.clipboardHistory -> {
