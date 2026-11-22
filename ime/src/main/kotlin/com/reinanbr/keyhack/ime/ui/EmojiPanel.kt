@@ -40,6 +40,10 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
     private val tabs = StripView(context, TAB_HEIGHT_DP)
     private val grid = GridView(context)
     private val bottom = StripView(context, TAB_HEIGHT_DP)
+
+    /** Kaomoji moods, shown under the tabs while the kaomoji tab is open. */
+    private val moods = StripView(context, TAB_HEIGHT_DP)
+    private var mood = Kaomoji.categories.first().id
     private val adapter = Adapter()
     private var tab = TAB_RECENT
     private var toneFor: Emoji? = null
@@ -60,6 +64,14 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
     init {
         orientation = VERTICAL
         addView(tabs, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(moods, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        moods.visibility = GONE
+        moods.listener =
+            StripView.Listener { id ->
+                mood = id
+                refresh()
+                grid.setSelection(0)
+            }
         addView(grid, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         addView(bottom, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         val d = resources.displayMetrics.density
@@ -96,6 +108,7 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         setBackgroundColor(c.background)
         tabs.colors = c
         bottom.colors = c
+        moods.colors = c
         adapter.notifyDataSetChanged()
     }
 
@@ -129,8 +142,13 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
 
     fun refresh() {
         val d = data
+        moods.visibility = if (tab == TAB_KAOMOJI) VISIBLE else GONE
         when (tab) {
-            TAB_KAOMOJI -> setEntries(Kaomoji.faces.map { it to null }, wide = true)
+            TAB_KAOMOJI -> {
+                moods.show(Kaomoji.categories.map { StripView.Item(it.id, it.label, accent = it.id == mood) })
+                val faces = Kaomoji.categories.firstOrNull { it.id == mood }?.faces.orEmpty()
+                setEntries(faces.map { it to null }, wide = true)
+            }
 
             TAB_TEXT_SYMBOLS -> setEntries(Kaomoji.symbols.map { it to null }, wide = false)
 

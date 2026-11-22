@@ -99,6 +99,9 @@ All notable changes to KeyHack are listed here. The format follows
   such as vlw, tmj, blz, niver; laughs like kkkk, hahaha, rsrs) picks
   them before the Unicode keywords, and short words like "de" or "isso" no
   longer bring up unrelated emoji.
+- Kaomoji: over 200 text faces (from 44), in nine moods with their own
+  tabs under ツ: happy, love, sad, angry, surprised, animals, actions and
+  table flips, dancing, and shrugs.
 
 - The HTTP client moved to its own module, `:net`, which only the online
   build includes; `:media` no longer has network code.
