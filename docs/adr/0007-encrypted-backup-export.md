@@ -86,7 +86,8 @@ file is a new untrusted input. Both need a decision.
   - Short passwords stay guessable offline, whatever the round count; hence
     the 8-character minimum and the warning in the export dialog.
   - 600,000 rounds is OWASP's 2023 figure for PBKDF2-HMAC-SHA256. On the
-    test phone it takes about a second.
+    test phone (moto g35) an export, file picker included, takes about four
+    seconds, with a progress indicator.
 
 ## Consequences
 
