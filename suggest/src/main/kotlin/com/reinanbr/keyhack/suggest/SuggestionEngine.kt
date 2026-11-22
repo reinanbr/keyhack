@@ -1,5 +1,6 @@
 package com.reinanbr.keyhack.suggest
 
+import com.reinanbr.keyhack.suggest.grammar.Agreement
 import java.util.Locale
 
 /** One entry in the suggestion strip. */
@@ -31,7 +32,8 @@ data class Suggestions(
  *
  * Context is the word before the cursor ([previous]) and the one before it
  * ([before]); it ranks candidates ("eu te am" -> "amo" over "ano") and drives
- * predictions.
+ * predictions. A few words further back (`earlier`, oldest first) only serve
+ * agreement: after "a gente não se", the verb is "vê", not "veem".
  */
 class SuggestionEngine(
     var dictionaries: List<Dictionary>,
@@ -39,7 +41,13 @@ class SuggestionEngine(
     var costs: EditCosts = EditCosts(),
     var ngrams: List<NgramModel> = emptyList(),
 ) {
-    fun suggest(typedRaw: String, previous: String?, limit: Int = DEFAULT_LIMIT, before: String? = null): Suggestions {
+    fun suggest(
+        typedRaw: String,
+        previous: String?,
+        limit: Int = DEFAULT_LIMIT,
+        before: String? = null,
+        earlier: List<String> = emptyList(),
+    ): Suggestions {
         if (typedRaw.isEmpty()) return Suggestions.EMPTY
         val typed = Dictionary.key(typedRaw)
         val n = typed.length
@@ -71,6 +79,7 @@ class SuggestionEngine(
         offerContextWords(typed, previous, before, ::offer)
         whitelist?.let { offer(it, WHITELIST_SCORE, Candidate.Kind.CORRECTION) }
         offerUserWords(typed, previous, before, maxCost, ::offer)
+        subjectPerson(earlier, before, previous)?.let { agreeCandidates(found, typed, it, ::offer) }
 
         val userValid = history.isValid(typed)
         val typedIsWord = typedFreq >= 0 || userValid
@@ -238,12 +247,20 @@ class SuggestionEngine(
      * the conversation models. A language whose model knows the two-word
      * context outranks the others, so Portuguese and English do not mix.
      */
-    fun predict(previous: String, before: String? = null, limit: Int = DEFAULT_LIMIT): List<Candidate> {
+    fun predict(
+        previous: String,
+        before: String? = null,
+        limit: Int = DEFAULT_LIMIT,
+        earlier: List<String> = emptyList(),
+    ): List<Candidate> {
         val scores = HashMap<String, Float>()
-        val pairs = if (before != null) ngrams.map { it.afterPair(before, previous) } else emptyList()
+        val person = subjectPerson(earlier, before, previous)
+        // After a Portuguese subject pronoun the next word is Portuguese ("eles não me" -> not "to").
+        val models = if (person == null) ngrams else ngrams.filter { it.language == "pt" }
+        val pairs = if (before != null) models.map { it.afterPair(before, previous) } else emptyList()
         val anyPair = pairs.any { it.isNotEmpty() }
-        val languageWeights = languageWeights(previous)
-        for ((i, model) in ngrams.withIndex()) {
+        val languageWeights = languageWeights(previous, models)
+        for ((i, model) in models.withIndex()) {
             val pair = pairs.getOrNull(i).orEmpty()
             val weight = if (anyPair && pair.isEmpty()) OTHER_LANGUAGE else languageWeights[i]
             val best = HashMap<String, Float>()
@@ -255,10 +272,136 @@ class SuggestionEngine(
             val k = Dictionary.key(w)
             scores[k] = (scores[k] ?: 0f) + USER_PREDICTION_BASE + count.coerceAtMost(PAIR_CAP) * USER_PREDICTION_STEP
         }
+        person?.let { agreeScores(scores, it) }
         return scores.entries
             .sortedByDescending { it.value }
             .take(limit)
             .map { Candidate(displayForm(it.key), it.value, Candidate.Kind.PREDICTION) }
+    }
+
+    /**
+     * A few words that often come next together, agreeing with the subject:
+     * "obrigado" -> "por me ajudar", "a gente" -> "se vê", "eu não" -> "sei o
+     * que". Built from the best next words by following the three-word models
+     * while they are confident; null when no chain of two or more words is.
+     */
+    fun phrase(previous: String, before: String? = null, earlier: List<String> = emptyList()): String? {
+        val context = (earlier + listOfNotNull(before, previous)).map(Dictionary::key)
+        for (first in predict(previous, before, PHRASE_STARTS, earlier)) {
+            if (first.score < PHRASE_FIRST_MIN) break
+            val words = arrayListOf(Dictionary.key(first.word))
+            while (words.size < PHRASE_MAX_WORDS) {
+                val next = nextInPhrase(context + words) ?: break
+                // "bom dia" -> "a dia": the model only sees two words back.
+                if (next in words || next in context) break
+                words += next
+            }
+            // "acho que o": a phrase never stops on an article or a preposition...
+            while (words.size > 1 && words.last() in WEAK_ENDINGS) words.removeAt(words.lastIndex)
+            // ...and two words starting with one are a fixed expression out of place ("boa noite" -> "e dia").
+            if (words.size == 2 && words[0] in WEAK_STARTS) continue
+            if (words.size >= 2) return words.joinToString(" ") { displayForm(it) }
+        }
+        return null
+    }
+
+    /** The word the three-word models are confident follows [keys], fitted to the subject; null if none is. */
+    private fun nextInPhrase(keys: List<String>): String? {
+        val n = keys.size
+        if (n < 2) return null
+        val agreement = agreement()
+        val person = agreement?.personAfter(keys)
+        var best: String? = null
+        var bestScore = PHRASE_MIN - 1
+        for (model in ngrams) {
+            for ((w, s) in model.afterPair(keys[n - 2], keys[n - 1])) {
+                if (s <= bestScore || !w.all { it.isLetter() }) continue
+                val fit = if (person == null || agreement == null) Agreement.Fit.NotVerb else agreement.fit(w, person)
+                best = when (fit) {
+                    is Agreement.Fit.Becomes -> fit.form
+                    Agreement.Fit.Wrong -> continue
+                    else -> w
+                }
+                bestScore = s
+            }
+        }
+        return best
+    }
+
+    // ------------------------------------------------------------ agreement
+
+    private var agreementFor: Dictionary? = null
+    private var agreementCache: Agreement? = null
+
+    /** Agreement over the Portuguese dictionary; null when Portuguese is off. */
+    private fun agreement(): Agreement? {
+        val pt = dictionaries.firstOrNull { it.language == "pt" } ?: return null
+        if (agreementFor !== pt) {
+            agreementCache = Agreement { w -> pt.lookup(w).let { if (it < 0) -1 else pt.freqs[it] } }
+            agreementFor = pt
+        }
+        return agreementCache
+    }
+
+    /** The person the next verb takes when a subject pronoun leads up to it ("eles não" -> they). */
+    private fun subjectPerson(earlier: List<String>, before: String?, previous: String?): Int? {
+        if (previous == null) return null
+        val agreement = agreement() ?: return null
+        return agreement.personAfter((earlier + listOfNotNull(before, previous)).map(Dictionary::key))
+    }
+
+    /**
+     * After a subject pronoun, completions in another person drop back and
+     * their agreeing form takes their place ("nós est" -> "estamos" over
+     * "está"); a finished word in the wrong person gets the right one next
+     * to it ("nós vai" -> "vamos"). Typo fixes keep their rank: autocorrect
+     * fixes spelling, never grammar, so those forms are only offered.
+     */
+    private fun agreeCandidates(
+        found: MutableMap<String, Candidate>,
+        typed: String,
+        person: Int,
+        offer: (String, Float, Candidate.Kind) -> Unit,
+    ) {
+        val agreement = agreement() ?: return
+        val folded = EditCosts.fold(typed)
+        for ((k, c) in found.entries.toList()) {
+            val completion = c.kind == Candidate.Kind.COMPLETION
+            when (val fit = agreement.fit(k, person)) {
+                Agreement.Fit.NotVerb -> Unit
+
+                Agreement.Fit.Agrees -> if (completion) found[k] = c.copy(score = c.score + AGREE_BONUS)
+
+                Agreement.Fit.Wrong -> if (completion) found[k] = c.copy(score = c.score - DISAGREE_PENALTY)
+
+                is Agreement.Fit.Becomes -> {
+                    if (completion) found[k] = c.copy(score = c.score - DISAGREE_PENALTY)
+                    val continues = fit.form.length > typed.length && EditCosts.fold(fit.form).startsWith(folded)
+                    if (continues) {
+                        offer(displayForm(fit.form), c.score + AGREE_BONUS, Candidate.Kind.COMPLETION)
+                    } else {
+                        offer(displayForm(fit.form), c.score, Candidate.Kind.PREDICTION)
+                    }
+                }
+            }
+        }
+    }
+
+    /** Next words in another person become the subject's ("nós não" -> "é" becomes "somos"). */
+    private fun agreeScores(scores: HashMap<String, Float>, person: Int) {
+        val agreement = agreement() ?: return
+        for ((k, s) in scores.entries.toList()) {
+            when (val fit = agreement.fit(k, person)) {
+                Agreement.Fit.NotVerb, Agreement.Fit.Agrees -> Unit
+
+                Agreement.Fit.Wrong -> scores.remove(k)
+
+                is Agreement.Fit.Becomes -> {
+                    scores.remove(k)
+                    scores[fit.form] = maxOf(scores[fit.form] ?: 0f, s)
+                }
+            }
+        }
     }
 
     /** The dictionary's spelling of a lowercase key ("i" -> "I", "brasil" -> "Brasil"). */
@@ -284,9 +427,9 @@ class SuggestionEngine(
      * word is about as common as in the language that uses it most, less
      * elsewhere ("boa" is Portuguese, so English's "boa constrictor" waits).
      */
-    private fun languageWeights(previous: String): List<Float> {
+    private fun languageWeights(previous: String, models: List<NgramModel> = ngrams): List<Float> {
         val key = Dictionary.key(previous)
-        val freqs = ngrams.map { m -> dictionaries.firstOrNull { it.language == m.language }?.freqOf(key) ?: 0 }
+        val freqs = models.map { m -> dictionaries.firstOrNull { it.language == m.language }?.freqOf(key) ?: 0 }
         val best = freqs.maxOrNull() ?: 0
         return freqs.map { if (it >= best - LANGUAGE_MARGIN) 1f else OTHER_LANGUAGE }
     }
@@ -350,6 +493,31 @@ class SuggestionEngine(
         private const val USER_PREDICTIONS = 5
         private const val USER_PREDICTION_BASE = 150f
         private const val USER_PREDICTION_STEP = 40f
+        private const val AGREE_BONUS = 20f
+        private const val DISAGREE_PENALTY = 40f
+
+        /** Phrases start from the best few next words... */
+        private const val PHRASE_STARTS = 3
+        private const val PHRASE_FIRST_MIN = 120f
+
+        /** ...and grow while the three-word models score the next word at least this (of 255). */
+        private const val PHRASE_MIN = 175
+        private const val PHRASE_MAX_WORDS = 3
+
+        /** Words a suggested phrase never ends on. */
+        private val WEAK_ENDINGS =
+            setOf(
+                "o", "a", "os", "as", "um", "uma", "uns", "umas", "de", "do", "da", "dos", "das", "em", "no", "na",
+                "nos", "nas", "para", "pra", "pro", "por", "pelo", "pela", "com", "ao", "à", "aos", "às", "me", "te",
+                "se", "lhe", "meu", "minha", "seu", "sua", "teu", "tua", "nosso", "nossa", "e", "ou", "mas",
+                "não", "the", "an", "to", "of", "in", "on", "at", "for", "with", "my", "your", "and", "or", "but", "i",
+            )
+
+        private val WEAK_STARTS =
+            setOf(
+                "o", "a", "os", "as", "um", "uma", "de", "do", "da", "em", "no", "na", "para", "pra", "por", "com",
+                "e", "ou", "mas", "the", "an", "and", "or", "but", "of", "to", "in",
+            )
 
         /** Largest edit cost still worth suggesting for a typed word of [length]. Tuned by hand. */
         @Suppress("MagicNumber")

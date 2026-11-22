@@ -297,5 +297,11 @@ internal object PortugueseVerbs {
     }
 
     private const val MAX_ENDING = 6
-    private const val MIN_STEM = 1
+
+    /**
+     * Regular verbs with a one-letter stem do not exist (the short ones, "ir",
+     * "ler", "rir", are irregular), but abbreviations do: "sir", "tir", "mer"
+     * would read "se", "to", "me" as verb forms.
+     */
+    private const val MIN_STEM = 2
 }

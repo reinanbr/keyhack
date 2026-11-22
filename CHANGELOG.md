@@ -29,6 +29,16 @@ All notable changes to KeyHack are listed here. The format follows
   → "an apple", "your welcome" → "you're welcome"). The rules live in
   plain text files (`suggest/src/main/assets/grammar/`) anyone can extend.
   Can be turned off in settings.
+- Suggestions agree with the subject: after "nós", "eles não" or "a gente
+  não se", predicted and completed verbs come in the right person ("nós
+  est" → "estamos" first, "eles fal" → "falam", after "nós não" →
+  "temos", "podemos", never "é" or "sei"). A finished verb in the wrong
+  person ("nós vai") gets the right one next to it; autocorrect still only
+  fixes spelling.
+- Phrase suggestions: when the next-word models are confident about more
+  than one word, the bar offers a short phrase first ("obrigado" → "por
+  me ajudar", "a gente" → "se vê", "eu não" → "sei o que", "thank you" →
+  "very much"); one tap writes it all.
 - About 140 common Portuguese and 160 English misspellings are corrected
   on space ("concerteza" → "com certeza", "menas" → "menos", "seje" →
   "seja", "definately" → "definitely", "dont" → "don't").

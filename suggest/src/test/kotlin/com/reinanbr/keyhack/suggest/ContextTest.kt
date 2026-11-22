@@ -97,4 +97,65 @@ class ContextTest {
             }
         }
     }
+
+    @Test
+    fun predictionsAgreeWithTheSubject() {
+        val e = engine("pt", "en")
+        val afterNosNao = e.predict("não", "nós", limit = 8).map { it.word }
+        assertTrue("temos" in afterNosNao && "somos" in afterNosNao, afterNosNao.toString())
+        assertFalse(afterNosNao.any { it in setOf("é", "sei", "tem", "tenho") }, afterNosNao.toString())
+        // The subject three words back still counts; English drops out after it.
+        val afterMe = e.predict("me", "não", limit = 6, earlier = listOf("eles")).map { it.word }
+        assertTrue("lembram" in afterMe, afterMe.toString())
+        assertFalse(afterMe.any { it in setOf("lembro", "to", "that") }, afterMe.toString())
+        // No subject, no change: "nos ajudar" is fine.
+        assertTrue("ajudar" in e.predict("nos", null, limit = 4).map { it.word })
+    }
+
+    @Test
+    fun completionsAgreeWithTheSubject() {
+        val e = engine("pt", "en")
+        fun words(typed: String, previous: String) = e.suggest(typed, previous).candidates.drop(1).map { it.word }
+        assertEquals("estamos", words("est", "nós").first())
+        assertEquals("estou", words("est", "eu").first())
+        assertEquals("fomos", words("fo", "nós").first())
+        val eles = words("fal", "eles")
+        assertTrue("falam" in eles && "fala" !in eles.take(3), eles.toString())
+    }
+
+    @Test
+    fun finishedVerbInTheWrongPersonGetsTheRightOneButIsNotAutocorrected() {
+        val e = engine("pt", "en")
+        val s = e.suggest("vai", "nós")
+        assertTrue("vamos" in s.candidates.map { it.word }.take(3), s.candidates.toString())
+        assertNull(s.autoCorrection)
+        // Autocorrect fixes the spelling only; the agreeing form is just offered.
+        val typo = e.suggest("vao", "nós")
+        assertEquals("vão", typo.autoCorrection)
+        assertTrue("vamos" in typo.candidates.map { it.word }, typo.candidates.toString())
+    }
+
+    @Test
+    fun suggestsPhrases() {
+        val e = engine("pt", "en")
+        assertEquals("por me ajudar", e.phrase("obrigado"))
+        assertEquals("se vê", e.phrase("gente", "a"))
+        assertEquals("sei o que", e.phrase("não", "eu"))
+        assertEquals("podemos fazer isso", e.phrase("não", "nós"))
+        assertEquals("very much", e.phrase("you", "thank"))
+    }
+
+    @Test
+    fun phrasesAreSkippedWhenWeak() {
+        val e = engine("pt", "en")
+        // "bom dia a dia", "boa noite e dia": fixed expressions out of place.
+        assertNull(e.phrase("dia", "bom"))
+        assertNull(e.phrase("noite", "boa"))
+        val weak = setOf("o", "a", "de", "do", "da", "em", "para", "me", "se", "e", "não", "the", "to", "of")
+        for (c in listOf("eu", "você", "tudo", "vou", "estou", "eu quero", "o que", "how are", "hoje")) {
+            val w = c.split(' ')
+            val p = e.phrase(w.last(), w.getOrNull(w.size - 2)) ?: continue
+            assertTrue(p.split(' ').size >= 2 && p.substringAfterLast(' ') !in weak, "$c -> $p")
+        }
+    }
 }

@@ -37,7 +37,7 @@ class GrammarCheckerTest {
             "nós vamos ", "eles falam ", "a gente vai ", "eu te amo ", "tu vai ", "tu vais ", "ele disse ",
             "eu é que sei ", "eu e ele vamos ", "falei com eles ", "para ele ", "nós saímos ", "eles incluem ",
             "eu acho ", "eles mesmos ", "vocês sabem ", "eu como ", "eu passeio ", "ele passeia ",
-            "eles conseguem ", "eu fiquei ", "eu conheço ",
+            "eles conseguem ", "eu fiquei ", "eu conheço ", "eles se ", "você me ", "eles me ", "eles te ",
         )) {
             assertNull(fix(ok), ok)
         }

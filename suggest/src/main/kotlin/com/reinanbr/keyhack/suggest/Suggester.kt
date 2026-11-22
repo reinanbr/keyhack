@@ -142,11 +142,17 @@ class Suggester(context: Context) {
         }
     }
 
-    fun suggest(typed: String, previous: String?, before: String?, callback: (Suggestions) -> Unit) {
+    fun suggest(
+        typed: String,
+        previous: String?,
+        before: String?,
+        earlier: List<String> = emptyList(),
+        callback: (Suggestions) -> Unit,
+    ) {
         val gen = ++generation
         worker.post {
             if (gen != generation) return@post
-            val result = engine.suggest(typed, previous, before = before)
+            val result = engine.suggest(typed, previous, before = before, earlier = earlier)
             main.post { if (gen == generation) callback(result) }
         }
     }
@@ -159,20 +165,28 @@ class Suggester(context: Context) {
         typed: String,
         previous: String?,
         before: String?,
+        earlier: List<String> = emptyList(),
         timeoutMs: Long = SYNC_TIMEOUT_MS,
     ): Suggestions? {
         generation++
-        val task = FutureTask { engine.suggest(typed, previous, before = before) }
+        val task = FutureTask { engine.suggest(typed, previous, before = before, earlier = earlier) }
         worker.postAtFrontOfQueue(task)
         return runCatching { task.get(timeoutMs, TimeUnit.MILLISECONDS) }.getOrNull()
     }
 
-    fun predict(previous: String, before: String?, callback: (List<Candidate>) -> Unit) {
+    /** Next words and, when the models are confident, a phrase ([SuggestionEngine.phrase]); latest wins. */
+    fun predict(
+        previous: String,
+        before: String?,
+        earlier: List<String> = emptyList(),
+        callback: (words: List<Candidate>, phrase: String?) -> Unit,
+    ) {
         val gen = ++generation
         worker.post {
             if (gen != generation) return@post
-            val result = engine.predict(previous, before)
-            main.post { if (gen == generation) callback(result) }
+            val words = engine.predict(previous, before, earlier = earlier)
+            val phrase = runCatching { engine.phrase(previous, before, earlier) }.getOrNull()
+            main.post { if (gen == generation) callback(words, phrase) }
         }
     }
 

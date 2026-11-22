@@ -101,40 +101,11 @@ class GrammarChecker(private val languages: List<LanguageGrammar>) {
     /** "nós vai" -> "nós vamos", "eles fala" -> "eles falam", "a gente fomos" -> "a gente foi". */
     private fun verbAgreement(lexicon: Lexicon, body: String, tokens: List<Token>): Match? {
         val verb = tokens.last()
-        val (subjectStart, person) = subjectOf(tokens) ?: return null
-        // "eu é que sei" is fine; only plural subjects get "é" fixed.
-        val skip = verb.key in NOT_VERBS || (verb.key == "é" && person != Verbs.P1 && person != Verbs.P3)
-        val parses = if (skip) emptyList() else Verbs.parse(verb.key) { lexicon.freq(it) > 0 }
-        if (parses.isEmpty() || parses.any { accepts(person, it.person) }) return null
-        val best = parses.maxBy { lexicon.freq(it.lemma) }
-        val target = Verbs.forms(best.lemma)[best.tense]?.getOrNull(person)?.takeIf { lexicon.freq(it) >= 0 }
-            ?: return null
+        val (subjectStart, person) = Agreement.subjectBefore(tokens.map { it.key }, tokens.lastIndex) ?: return null
+        val fit = Agreement(lexicon).fit(verb.key, person, strict = false) as? Agreement.Fit.Becomes ?: return null
         val prefix = body.substring(tokens[subjectStart].start, verb.start)
-        return Match(subjectStart, prefix + SuggestionEngine.matchCase(verb.text, target))
+        return Match(subjectStart, prefix + SuggestionEngine.matchCase(verb.text, fit.form))
     }
-
-    /**
-     * The subject pronoun right before the last word (adverbs and clitic
-     * pronouns may sit between: "eles não te"), as (first token, person).
-     */
-    private fun subjectOf(tokens: List<Token>): Pair<Int, Int>? {
-        var i = tokens.size - 2
-        var skipped = 0
-        while (i >= 0 && tokens[i].key in VERB_ADVERBS && skipped < MAX_SKIPPED) {
-            i--
-            skipped++
-        }
-        val subject =
-            when {
-                i < 0 -> null
-                tokens[i].key == "gente" && i > 0 && tokens[i - 1].key == "a" -> (i - 1) to Verbs.S3
-                else -> SUBJECTS[tokens[i].key]?.let { i to it }
-            }
-        // "para ele", "com eles", "eu e ele vamos": not the (whole) subject.
-        return subject?.takeIf { (start, _) -> start == 0 || tokens[start - 1].key !in NOT_SUBJECT_AFTER }
-    }
-
-    private fun accepts(subject: Int, verb: Int): Boolean = verb == subject || (subject == Verbs.S2 && verb == Verbs.S3)
 
     /** "os menino" -> "os meninos", "dois real" -> "dois reais", "três mês" -> "três meses". */
     private fun nounPlural(lexicon: Lexicon, body: String, tokens: List<Token>): Match? {
@@ -221,41 +192,11 @@ class GrammarChecker(private val languages: List<LanguageGrammar>) {
         private val TOKEN = Regex("[\\p{L}\\p{N}]+(?:['’-][\\p{L}\\p{N}]+)*|,")
         private const val TAIL_PUNCTUATION = ".,!?;:…"
         private const val SENTENCE_BREAKS = ".!?;:\n…()\"“”"
-        private const val MAX_SKIPPED = 3
         private const val DET_LOOKBACK = 3
         private const val VOWELS = "aeiouáéíóúâêôãõà"
 
         fun tokenize(text: String, from: Int = 0): List<Token> =
             TOKEN.findAll(text, from).map { Token(it.value, it.range.first, it.range.last + 1) }.toList()
-
-        private val SUBJECTS =
-            mapOf(
-                "eu" to Verbs.S1,
-                "tu" to Verbs.S2,
-                "você" to Verbs.S3, "vc" to Verbs.S3, "cê" to Verbs.S3, "ele" to Verbs.S3, "ela" to Verbs.S3,
-                "nós" to Verbs.P1,
-                "vocês" to Verbs.P3, "vcs" to Verbs.P3, "eles" to Verbs.P3, "elas" to Verbs.P3,
-            )
-
-        /** Words that may sit between subject and verb: "eles não vão", "eu te amo". */
-        private val VERB_ADVERBS =
-            setOf(
-                "não", "nao", "nunca", "já", "ja", "também", "tb", "tbm", "sempre", "ainda", "só", "me", "te",
-                "se", "lhe", "lhes", "vos", "quase", "mesmo",
-            )
-
-        private val NOT_SUBJECT_AFTER =
-            setOf(
-                "para", "pra", "com", "de", "por", "sem", "entre", "a", "até", "sobre", "contra", "e", "ou", "nem",
-                ",", "pelo", "pela", "do", "da", "ao", "em",
-            )
-
-        /** Function words that look like verb forms (parar, comer, sobrar, logar, ceder). */
-        private val NOT_VERBS =
-            setOf(
-                "para", "como", "sobre", "entre", "logo", "cedo", "segundo", "contra", "mesmo", "menos", "nada",
-                "tudo", "todo", "toda", "assim", "então", "durante", "conforme", "embora", "fora", "afora",
-            )
 
         private val PLURAL_DETERMINERS =
             setOf(
