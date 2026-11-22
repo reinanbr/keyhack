@@ -218,7 +218,21 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
                 }
             val d = resources.displayMetrics.density
             tv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (CELL_HEIGHT_DP * d).toInt())
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (wide) WIDE_TEXT_SP else EMOJI_SP)
+            if (wide) {
+                // Long faces ("┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻") shrink to fit their cell instead of being cut off.
+                val pad = (WIDE_PADDING_DP * d).toInt()
+                tv.setPadding(pad, 0, pad, 0)
+                tv.setAutoSizeTextTypeUniformWithConfiguration(
+                    WIDE_MIN_SP.toInt(),
+                    WIDE_TEXT_SP.toInt(),
+                    1,
+                    TypedValue.COMPLEX_UNIT_SP,
+                )
+            } else {
+                tv.setPadding(0, 0, 0, 0)
+                tv.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, EMOJI_SP)
+            }
             tv.typeface = if (wide) null else emojiFace
             colors?.let { tv.setTextColor(it.label) }
             tv.text = entries[position]
@@ -236,6 +250,8 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         private const val CELL_HEIGHT_DP = 48f
         private const val EMOJI_SP = 26f
         private const val WIDE_TEXT_SP = 15f
+        private const val WIDE_MIN_SP = 8f
+        private const val WIDE_PADDING_DP = 4f
     }
 }
 
