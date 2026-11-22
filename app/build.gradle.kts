@@ -44,6 +44,7 @@ dependencies {
     implementation(project(":stickers"))
     implementation(project(":clipboard"))
     implementation(project(":devtools"))
+    implementation(project(":theme"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 }

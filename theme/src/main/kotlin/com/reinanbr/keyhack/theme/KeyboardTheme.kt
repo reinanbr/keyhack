@@ -41,10 +41,10 @@ data class KeyboardShape(
 /**
  * Built-in themes. "system" follows the device's dark mode; "dynamic" uses
  * Material You on Android 12+; "ios" is the iPhone keyboard look (light or
- * dark with the system).
+ * dark with the system); "custom" is the user's [CustomTheme].
  */
 object KeyboardThemes {
-    val ids = listOf("system", "dynamic", "light", "dark", "amoled", "ios")
+    val ids = listOf("system", "dynamic", "light", "dark", "amoled", "ios", "custom")
 
     val DEFAULT_SHAPE = KeyboardShape()
 
@@ -120,7 +120,8 @@ object KeyboardThemes {
             onAccent = 0xFFFFFFFF.toInt(),
         )
 
-    fun resolve(context: Context, id: String): KeyboardColors {
+    /** The colors for theme [id]; [custom] is the encoded [CustomTheme], used when [id] is "custom". */
+    fun resolve(context: Context, id: String, custom: String = ""): KeyboardColors {
         val night =
             context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -129,6 +130,7 @@ object KeyboardThemes {
             "dark" -> DARK
             "amoled" -> AMOLED
             "ios" -> if (night) IOS_DARK else IOS_LIGHT
+            "custom" -> CustomTheme.colors(custom) ?: system(night)
             "dynamic" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) dynamic(context, night) else system(night)
             else -> system(night)
         }

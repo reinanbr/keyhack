@@ -389,12 +389,17 @@ private fun KeyboardSection(p: Prefs) {
                 "dark" to R.string.theme_dark,
                 "amoled" to R.string.theme_amoled,
                 "ios" to R.string.theme_ios,
+                "custom" to R.string.theme_custom,
             ).mapValues { stringResource(it.value) }
+        val theme = p.string(K.THEME, "system")
         Choice(
             stringResource(R.string.pref_theme),
-            p.string(K.THEME, "system"),
+            theme,
             themes,
         ) { v -> p.set { putString(K.THEME, v) } }
+        if (theme == "custom") {
+            ThemeEditor(p.string(K.CUSTOM_THEME, "")) { v -> p.set { putString(K.CUSTOM_THEME, v) } }
+        }
         FeedbackRows(p)
     }
 }

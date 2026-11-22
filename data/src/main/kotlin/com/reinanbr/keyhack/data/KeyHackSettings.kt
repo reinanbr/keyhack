@@ -33,6 +33,9 @@ class KeyHackSettings(context: Context) {
     val heightPercent: Int get() = prefs.getInt(HEIGHT, DEFAULT_HEIGHT)
     val longPressMs: Int get() = prefs.getInt(LONG_PRESS, DEFAULT_LONG_PRESS)
     val theme: String get() = str(THEME, "system")
+
+    /** The custom theme's colors, encoded by CustomTheme ("#RRGGBB,..."); empty until edited. */
+    val customTheme: String get() = str(CUSTOM_THEME, "")
     val keyPreview: Boolean get() = bool(KEY_PREVIEW, true)
 
     /** One-handed mode: "off", "left" or "right" (the side the keyboard sits on). */
@@ -101,6 +104,7 @@ class KeyHackSettings(context: Context) {
         const val LONG_PRESS = "long_press_ms"
         const val THEME = "theme"
         const val HAPTICS = "haptics"
+        const val CUSTOM_THEME = "custom_theme"
         const val FLOATING = "floating"
         const val FLOAT_X = "float_x"
         const val FLOAT_Y = "float_y"

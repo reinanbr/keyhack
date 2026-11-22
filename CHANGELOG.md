@@ -60,6 +60,12 @@ All notable changes to KeyHack are listed here. The format follows
   its full size and stays touchable around the keyboard; the position is
   remembered. Turn it on from the ✋ one-handed bar (⧉), the command
   palette or settings.
+- Theme editor: a "Custom" theme where you pick the background, keys,
+  function keys, letters and highlight colors (hue, saturation and
+  brightness sliders, a hex field or ready colors), starting from any
+  built-in theme, with a live preview and a warning when letters would be
+  hard to read. Pressed keys and secondary labels are derived from your
+  picks.
 - Vibration length setting (0–60 ms). 0 keeps the system's keyboard
   vibration, which some phones mute along with touch feedback.
 

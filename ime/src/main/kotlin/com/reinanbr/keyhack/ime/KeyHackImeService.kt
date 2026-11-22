@@ -371,7 +371,7 @@ class KeyHackImeService :
 
     private fun applySettings() {
         settingsChanged = false
-        colors = KeyboardThemes.resolve(this, settings.theme)
+        colors = KeyboardThemes.resolve(this, settings.theme, settings.customTheme)
         keyboardView?.apply {
             colors = this@KeyHackImeService.colors
             showHints = settings.keyHints

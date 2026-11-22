@@ -59,7 +59,7 @@ install; use it only for testing.
   Termux; PC mode switches on automatically in terminal and SSH apps.
 - **Gboard side:** long-press accents and symbols, space-bar cursor trackpad,
   key-press preview, one-handed mode, themes (light, dark, AMOLED,
-  Material You, iOS),
+  Material You, iOS, or your own colors in the theme editor),
   QWERTY, ABNT2, AZERTY, Dvorak and Colemak layouts (JSON, documented in
   [`layouts/README.md`](layouts/README.md)); English and Brazilian Portuguese
   dictionaries with autocorrect (undo with backspace), completions,
@@ -204,7 +204,7 @@ the diff:
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |
-| M9 | Floating mode (one-handed ✅), theme editor, backup export, `offline` flavor without network, F-Droid | |
+| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, backup export, `offline` flavor without network, F-Droid | partial |
 
 ## Contributing and security
 

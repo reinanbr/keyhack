@@ -125,4 +125,15 @@
   <string name="pref_glide_summary">Deslize o dedo pelas letras de uma palavra sem levantar. Alternativas aparecem na barra de sugestões; o ⌫ apaga a palavra inteira. Um deslize curto para cima numa tecla continua digitando o símbolo do canto.</string>
   <string name="pref_floating">Teclado flutuante</string>
   <string name="pref_floating_summary">Um teclado menor que você arrasta para qualquer lugar sobre o app pela alça no topo; ▭ na alça o devolve para baixo. Também pelo botão ✋ (⧉).</string>
+  <string name="theme_custom">Personalizado</string>
+  <string name="theme_start_from">Começar de</string>
+  <string name="theme_slot_background">Fundo</string>
+  <string name="theme_slot_key">Teclas</string>
+  <string name="theme_slot_function">Teclas de função (⇧ ⌫ ?123)</string>
+  <string name="theme_slot_label">Letras</string>
+  <string name="theme_slot_accent">Destaque (Enter, teclas ativas)</string>
+  <string name="theme_low_contrast">Letras e teclas com brilho parecido demais: difícil de ler no sol.</string>
+  <string name="color_hue">Matiz</string>
+  <string name="color_saturation">Saturação</string>
+  <string name="color_brightness">Brilho</string>
 </resources>

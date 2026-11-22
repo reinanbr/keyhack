@@ -124,4 +124,15 @@
   <string name="pref_glide_summary">Slide your finger across the letters of a word without lifting it. Alternatives appear in the suggestion bar; backspace removes the whole word. A short swipe up on a key still types its corner symbol.</string>
   <string name="pref_floating">Floating keyboard</string>
   <string name="pref_floating_summary">A smaller keyboard you drag anywhere over the app by the handle on top; ▭ on the handle docks it. Also from the ✋ button (⧉).</string>
+  <string name="theme_custom">Custom</string>
+  <string name="theme_start_from">Start from</string>
+  <string name="theme_slot_background">Background</string>
+  <string name="theme_slot_key">Keys</string>
+  <string name="theme_slot_function">Function keys (⇧ ⌫ ?123)</string>
+  <string name="theme_slot_label">Letters</string>
+  <string name="theme_slot_accent">Highlight (Enter, active keys)</string>
+  <string name="theme_low_contrast">Letters and keys are too close in brightness: hard to read in sunlight.</string>
+  <string name="color_hue">Hue</string>
+  <string name="color_saturation">Saturation</string>
+  <string name="color_brightness">Brightness</string>
 </resources>
