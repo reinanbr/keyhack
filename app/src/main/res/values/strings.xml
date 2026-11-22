@@ -96,7 +96,7 @@
   <string name="lang_pt">Portuguese (Brazil)</string>
   <string name="privacy_body">No analytics, no crash reporting, no telemetry. Learned words are stored in a private file that is never backed up. Typing in password fields and in apps that ask for no personalized learning is never learned. Use the 🕶 button on the toolbar for incognito typing.</string>
   <string name="help_title">Tips</string>
-  <string name="help_body">• DEV on the keyboard bar switches between the simple keyboard (chat) and the advanced one (Ctrl, Alt, arrows, terminal).\n• Swipe up on a key to type the symbol in its corner (@ _ / \" and more; in advanced mode also { } [ ]); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, 🖼 stickers, 📋 clipboard history, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.\n• Just copied something? It appears in the bar (📋) to paste with one tap.\n• A ✓ chip in the bar fixes grammar in the words you just typed (\"nós vai\" → \"nós vamos\"); tap it to apply.</string>
+  <string name="help_body">• DEV on the keyboard bar switches between the simple keyboard (chat) and the advanced one (Ctrl, Alt, arrows, terminal).\n• Swipe up on a key to type the symbol in its corner (@ _ / \" and more; in advanced mode also { } [ ]); long-press for accents.\n• ?123 has every code symbol on one page.\n• Slide on the space bar to move the cursor.\n• Long-press space to switch keyboards; long-press comma for settings.\n• Toolbar: ☺ emoji, GIF, 🖼 stickers, 📋 clipboard history, &lt;/&gt; dev tools (case, Base64, JSON, hashes, UUID…), PC mode, 🕶 incognito.\n• Just copied something? It appears in the bar (📋) to paste with one tap.\n• Slide ⌫ to the left to delete whole words (lift to delete, ↶ to undo).\n• &lt;/&gt; panel: Snippets tab (saved texts; typing a snippet\'s shortcut offers it in the bar) and 🔍 to search every command.\n• A ✓ chip in the bar fixes grammar in the words you just typed (\"nós vai\" → \"nós vamos\"); tap it to apply.</string>
   <string name="section_clipboard">Clipboard</string>
   <string name="pref_clipboard_history">Clipboard history</string>
   <string name="pref_clipboard_history_summary">Keep the texts you copy so you can paste them again from the 📋 button. Encrypted with a key that never leaves this phone; never kept from password fields, incognito, or copies marked sensitive.</string>
@@ -108,4 +108,16 @@
   <string name="clipboard_deleted">Clipboard history deleted</string>
   <string name="pref_grammar">Grammar suggestions</string>
   <string name="pref_grammar_summary">After each word, checks agreement and common mistakes (\"nós vai\" → \"nós vamos\", \"a apple\" → \"an apple\") on this phone and offers the fix first in the suggestion bar (✓). Nothing changes until you tap it.</string>
+  <string name="pref_vibration_ms">Vibration length</string>
+  <string name="pref_vibration_ms_help">0 uses the system keyboard vibration, which is silent when the phone\'s touch feedback is off. Any other value makes KeyHack vibrate itself, for that many milliseconds.</string>
+  <string name="section_snippets">Snippets</string>
+  <string name="snippets_summary">Saved texts: an address, a Pix key, a reply you send often. Type a snippet\'s shortcut and it shows up in the suggestion bar; all of them are in the keyboard\'s &lt;/&gt; panel, Snippets tab. Stored encrypted, never backed up.</string>
+  <string name="snippet_add">Add snippet</string>
+  <string name="snippet_trigger">Shortcut (optional)</string>
+  <string name="snippet_trigger_help">One word you type to get this text, like \"end\" or \"pix\"</string>
+  <string name="snippet_trigger_preview">Typing \"%1$s\" offers this text</string>
+  <string name="snippet_trigger_taken">Another snippet uses this shortcut</string>
+  <string name="snippet_text">Text</string>
+  <string name="snippet_save">Save</string>
+  <string name="snippet_delete">Delete</string>
 </resources>

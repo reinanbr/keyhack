@@ -38,6 +38,9 @@ class KeyHackSettings(context: Context) {
     /** One-handed mode: "off", "left" or "right" (the side the keyboard sits on). */
     val oneHanded: String get() = str(ONE_HANDED, ONE_HANDED_OFF).takeIf { it in ONE_HANDED_SIDES } ?: ONE_HANDED_OFF
     val haptics: Boolean get() = bool(HAPTICS, true)
+
+    /** Key vibration in ms; 0 = the system's keyboard haptic (silent when the system turns touch feedback off). */
+    val vibrationMs: Int get() = prefs.getInt(VIBRATION_MS, 0).coerceIn(0, MAX_VIBRATION_MS)
     val sound: Boolean get() = bool(SOUND, false)
 
     // Typing
@@ -88,6 +91,8 @@ class KeyHackSettings(context: Context) {
         const val LONG_PRESS = "long_press_ms"
         const val THEME = "theme"
         const val HAPTICS = "haptics"
+        const val VIBRATION_MS = "vibration_ms"
+        const val MAX_VIBRATION_MS = 60
         const val KEY_PREVIEW = "key_preview"
         const val ONE_HANDED = "one_handed"
         const val ONE_HANDED_OFF = "off"

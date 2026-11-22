@@ -34,9 +34,26 @@ All notable changes to KeyHack are listed here. The format follows
   "seja", "definately" → "definitely", "dont" → "don't").
 - Current words the dictionaries lacked: WhatsApp, iFood, TikTok, stories,
   selfie, crush, sextou, print, live, rizz, lowkey and others.
+- Delete whole words: slide ⌫ to the left and the words to delete are
+  selected, one more for each step (slide back to take them off); lift to
+  delete them. Holding ⌫ also switches from letters to whole words after
+  about two seconds. Either way, "↶ Undo" in the suggestion bar brings the
+  text back for five seconds.
+- Snippets: saved texts (an address, a Pix key, a reply you send often),
+  stored encrypted. Give one a shortcut ("end") and typing it offers the
+  text in the suggestion bar; all of them are in the </> panel's Snippets
+  tab, which can also save the selected or copied text as a new one.
+  Created and edited in settings.
+- Command palette: 🔍 in the </> panel searches every panel, toggle, edit
+  action, dev tool and snippet by name ("base64", "anônimo", "área");
+  tap a result or press Enter to run the best one.
+- Vibration length setting (0–60 ms). 0 keeps the system's keyboard
+  vibration, which some phones mute along with touch feedback.
 
 ### Changed
 
+- ⌫ deletes when released (or when held), not when touched, so a slide
+  to delete words does not take a letter first.
 - The dev tools panel's editing actions (Copy, Paste, Undo…) are
   translated.
 

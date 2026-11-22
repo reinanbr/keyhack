@@ -50,4 +50,18 @@
   <string name="keyhack_edit_doc_start">⇤ Início</string>
   <string name="keyhack_edit_doc_end">Fim ⇥</string>
   <string name="keyhack_tools_title">Ferramentas</string>
+  <string name="keyhack_undo">Desfazer</string>
+  <string name="keyhack_palette_hint">Buscar comandos, ferramentas, snippets</string>
+  <string name="keyhack_snippets_title">Snippets</string>
+  <string name="keyhack_snippet_add">＋ Salvar seleção</string>
+  <string name="keyhack_snippet_edit">⚙ Atalhos e edição</string>
+  <string name="keyhack_snippet_saved">Salvo como snippet (dê um atalho nas configurações)</string>
+  <string name="keyhack_snippet_select_first">Selecione ou copie o texto a salvar primeiro</string>
+  <string name="keyhack_cmd_incognito">Modo anônimo</string>
+  <string name="keyhack_cmd_mode">Teclado simples ou avançado</string>
+  <string name="keyhack_cmd_pc">Layout PC</string>
+  <string name="keyhack_cmd_onehand">Modo uma mão</string>
+  <string name="keyhack_cmd_settings">Configurações</string>
+  <string name="keyhack_cmd_switch">Trocar de teclado</string>
+  <string name="keyhack_cmd_hide">Esconder teclado</string>
 </resources>

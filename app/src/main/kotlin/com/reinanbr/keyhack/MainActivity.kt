@@ -46,6 +46,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -71,6 +74,9 @@ class MainActivity : ComponentActivity() {
     private var status by mutableStateOf(ImeStatus(enabled = false, selected = false))
     private val stickers by lazy { StickerStore(this) }
     private var stickerCount by mutableStateOf(0)
+
+    /** Set when the keyboard asks for the snippets editor; the screen scrolls there. */
+    private var snippetRequest by mutableStateOf(0)
 
     // The system photo picker: no storage permission, the user picks each image.
     private val pickImages =
@@ -106,6 +112,10 @@ class MainActivity : ComponentActivity() {
             intent.removeExtra(EXTRA_IMPORT_STICKERS)
             openStickerPicker()
         }
+        if (intent?.getBooleanExtra(EXTRA_EDIT_SNIPPETS, false) == true) {
+            intent.removeExtra(EXTRA_EDIT_SNIPPETS)
+            snippetRequest++
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -125,6 +135,7 @@ class MainActivity : ComponentActivity() {
                     status = status,
                     settings = settings,
                     stickerCount = stickerCount,
+                    snippetRequest = snippetRequest,
                     onImportStickers = ::openStickerPicker,
                     onDeleteStickers = {
                         stickers.deleteAll()
@@ -163,6 +174,9 @@ class MainActivity : ComponentActivity() {
 
         /** Sent by the keyboard's sticker panel (KeyHackImeService.EXTRA_IMPORT_STICKERS). */
         const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
+
+        /** Sent by the keyboard's snippets tab (KeyHackImeService.EXTRA_EDIT_SNIPPETS). */
+        const val EXTRA_EDIT_SNIPPETS = "com.reinanbr.keyhack.EDIT_SNIPPETS"
         const val MAX_STICKER_IMPORT = 30
     }
 }
@@ -213,6 +227,7 @@ private fun SettingsScreen(
     status: ImeStatus,
     settings: KeyHackSettings,
     stickerCount: Int,
+    snippetRequest: Int,
     onImportStickers: () -> Unit,
     onDeleteStickers: () -> Unit,
     onEnable: () -> Unit,
@@ -227,13 +242,18 @@ private fun SettingsScreen(
         settings.prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { settings.prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
+    val scroll = rememberScrollState()
+    var snippetsY by remember { mutableStateOf(-1) }
+    LaunchedEffect(snippetRequest, snippetsY) {
+        if (snippetRequest > 0 && snippetsY >= 0) scroll.animateScrollTo(snippetsY)
+    }
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier =
             Modifier
                 .safeDrawingPadding()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -263,6 +283,7 @@ private fun SettingsScreen(
             KeyboardSection(p)
             TypingSection(p, onClearLearning)
             ClipboardSection(p, onDeleteClipboard)
+            SnippetsSection(Modifier.onGloballyPositioned { snippetsY = it.positionInParent().y.roundToInt() })
             PcSection(p)
             GifSection(p)
             StickerSection(stickerCount, onImportStickers, onDeleteStickers)
@@ -395,11 +416,21 @@ private fun FeedbackRows(p: Prefs) {
             "right" to R.string.one_handed_right,
         ).mapValues { stringResource(it.value) },
     ) { v -> p.set { putString(K.ONE_HANDED, v) } }
+    val haptics = p.bool(K.HAPTICS, true)
     SwitchRow(
         stringResource(R.string.pref_haptics),
         null,
-        p.bool(K.HAPTICS, true),
+        haptics,
     ) { p.set { putBoolean(K.HAPTICS, it) } }
+    if (haptics) {
+        SliderRow(
+            stringResource(R.string.pref_vibration_ms),
+            p.int(K.VIBRATION_MS, 0),
+            0..K.MAX_VIBRATION_MS,
+            " ms",
+        ) { p.set { putInt(K.VIBRATION_MS, it) } }
+        Text(stringResource(R.string.pref_vibration_ms_help), style = MaterialTheme.typography.bodySmall)
+    }
     SwitchRow(
         stringResource(R.string.pref_sound),
         null,
@@ -546,8 +577,8 @@ private fun GifSection(p: Prefs) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+internal fun Section(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             HorizontalDivider()

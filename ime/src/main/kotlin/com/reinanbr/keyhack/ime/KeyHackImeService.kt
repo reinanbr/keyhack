@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
@@ -26,6 +27,8 @@ import com.reinanbr.keyhack.clipboard.ClipboardStore
 import com.reinanbr.keyhack.commit.ContentCommitter
 import com.reinanbr.keyhack.data.KeyHackSettings
 import com.reinanbr.keyhack.devtools.DevTool
+import com.reinanbr.keyhack.devtools.Snippet
+import com.reinanbr.keyhack.devtools.SnippetStore
 import com.reinanbr.keyhack.devtools.TextTransforms
 import com.reinanbr.keyhack.emoji.EmojiData
 import com.reinanbr.keyhack.emoji.EmojiFont
@@ -87,7 +90,7 @@ class KeyHackImeService :
     ClipboardPanel.Listener {
     private enum class Panel { KEYBOARD, EMOJI, GIF, STICKER, TOOLS, CLIPBOARD }
 
-    private enum class Search { NONE, EMOJI, GIF }
+    private enum class Search { NONE, EMOJI, GIF, COMMAND }
 
     private lateinit var settings: KeyHackSettings
     private lateinit var layouts: LayoutRepository
@@ -97,6 +100,7 @@ class KeyHackImeService :
     private lateinit var stickers: StickerStore
     private lateinit var clipboard: ClipboardStore
     private lateinit var clipboardManager: ClipboardManager
+    private lateinit var snippets: SnippetStore
 
     /** The quick-paste chip was used or dismissed for this item. */
     private var dismissedClipId = 0L
@@ -140,6 +144,16 @@ class KeyHackImeService :
 
     /** A grammar or agreement fix for the words just typed, shown first in the bar. */
     private var grammarFix: GrammarFix? = null
+
+    // Delete dragged left: the text before the cursor when the drag started,
+    // how much each word count deletes, and the cursor (-1 if the editor does not say).
+    private var swipeBefore: String? = null
+    private var swipeSpans: List<Int> = emptyList()
+    private var swipeAnchor = -1
+    private var swipeWords = 0
+
+    /** Text the last word deletion removed, offered back for a few seconds. */
+    private var undoDelete: String? = null
     private var previousWord: String? = null
 
     /** The word before [previousWord], for two-word context ("eu te" -> "amo"). */
@@ -172,6 +186,7 @@ class KeyHackImeService :
     private val clipboardChanged: () -> Unit = {
         if (panel == Panel.CLIPBOARD) refreshClipboardPanel()
     }
+    private val snippetsChanged: () -> Unit = { toolsPanel?.snippets = snippets.all() }
 
     private val pcMode: Boolean
         get() = pcOverride ?: (settings.layout == "pc" || editorPackage in settings.pcApps)
@@ -194,6 +209,8 @@ class KeyHackImeService :
         clipboard.addListener(clipboardChanged)
         clipboardManager = getSystemService(ClipboardManager::class.java)
         clipboardManager.addPrimaryClipChangedListener(clipListener)
+        snippets = SnippetStore.get(this)
+        snippets.addListener(snippetsChanged)
         Thread({
             val data = runCatching { assets.open("emoji.tsv").bufferedReader().use(EmojiData::read) }.getOrNull()
             main.post {
@@ -207,6 +224,7 @@ class KeyHackImeService :
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
         clipboardManager.removePrimaryClipChangedListener(clipListener)
         clipboard.removeListener(clipboardChanged)
+        snippets.removeListener(snippetsChanged)
         suggester.close()
         gifs.close()
         stickerIo.shutdown()
@@ -328,6 +346,7 @@ class KeyHackImeService :
             showHints = settings.keyHints
             heightScale = settings.heightPercent / PERCENT
             hapticsEnabled = settings.haptics
+            vibrationMs = settings.vibrationMs
             soundEnabled = settings.sound
             longPressMillis = settings.longPressMs.toLong()
             keyPreview = settings.keyPreview
@@ -581,6 +600,88 @@ class KeyHackImeService :
         renderState()
     }
 
+    /** Held Delete: letters first, then whole words once it has been held a while. */
+    override fun onRepeat(key: Key, count: Int) {
+        val words = key.action == KeyAction.Delete && count >= WORD_DELETE_AFTER && composing.isEmpty() &&
+            !policy.rawKeys && !modifiers.anyActive && !hasSelection
+        if (!words) {
+            onKey(key, key.action)
+            return
+        }
+        if ((count - WORD_DELETE_AFTER) % WORD_DELETE_EVERY != 0) return
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(SWIPE_LOOKBACK, 0)?.toString() ?: return
+        val len = WordSpans.deleteLengths(before, 1).firstOrNull() ?: return
+        ic.deleteSurroundingText(len, 0)
+        previousWordStale = true
+        revert = null
+        updateAutoCaps()
+    }
+
+    override fun onDeleteSwipe(words: Int) {
+        val ic = currentInputConnection ?: return
+        if (policy.rawKeys || modifiers.anyActive) return
+        if (swipeBefore == null) {
+            commitComposing(autocorrect = false)
+            val before = ic.getTextBeforeCursor(SWIPE_LOOKBACK, 0)?.toString() ?: return
+            swipeBefore = before
+            swipeSpans = WordSpans.deleteLengths(before, MAX_SWIPE_WORDS)
+            swipeAnchor = ic.getExtractedText(ExtractedTextRequest(), 0)
+                ?.takeIf { it.selectionStart == it.selectionEnd && it.selectionStart >= 0 }
+                ?.let { it.startOffset + it.selectionEnd } ?: -1
+        }
+        val before = swipeBefore ?: return
+        swipeWords = words.coerceAtMost(swipeSpans.size)
+        val len = if (swipeWords == 0) 0 else swipeSpans[swipeWords - 1]
+        // Highlight what will go, like a selection; the editor shows it.
+        if (swipeAnchor >= 0) ownEdit { ic.setSelection(swipeAnchor - len, swipeAnchor) }
+        val preview = before.takeLast(len).trim().replace('\n', ' ')
+        strip?.show(
+            listOf(StripView.Item("", if (len == 0) "⌫" else "⌫  " + preview.takeLast(PREVIEW_CHARS), dim = true)),
+        )
+    }
+
+    override fun onDeleteSwipeEnd() {
+        val ic = currentInputConnection
+        val before = swipeBefore
+        val n = swipeWords
+        swipeBefore = null
+        swipeWords = 0
+        if (ic == null || before == null) return
+        if (n == 0) {
+            if (swipeAnchor >= 0) ownEdit { ic.setSelection(swipeAnchor, swipeAnchor) }
+            renderStrip()
+            return
+        }
+        val len = swipeSpans[n - 1]
+        ownEdit {
+            // The selection made while dragging is replaced; without one, delete before the cursor.
+            if (swipeAnchor >= 0) ic.commitText("", 1) else ic.deleteSurroundingText(len, 0)
+        }
+        undoDelete = before.takeLast(len)
+        main.removeCallbacks(clearUndo)
+        main.postDelayed(clearUndo, UNDO_MS)
+        previousWordStale = true
+        revert = null
+        autoSpace = false
+        updateAutoCaps()
+        showDefaultStrip()
+    }
+
+    private val clearUndo = Runnable {
+        undoDelete = null
+        renderStrip()
+    }
+
+    private fun undoWordDelete() {
+        val text = undoDelete ?: return
+        undoDelete = null
+        currentInputConnection?.commitText(text, 1)
+        previousWordStale = true
+        updateAutoCaps()
+        showDefaultStrip()
+    }
+
     override fun onCursorSwipe(steps: Int) {
         val ic = currentInputConnection ?: return
         commitComposing(autocorrect = false)
@@ -626,6 +727,7 @@ class KeyHackImeService :
             return
         }
         revert = null
+        undoDelete = null
         if (policy.suggestions && !policy.rawKeys && isWordChar(text)) {
             if (composing.isEmpty()) {
                 autoSpace = false
@@ -982,23 +1084,50 @@ class KeyHackImeService :
     private fun renderStrip() {
         val s = strip ?: return
         if (search != Search.NONE) {
-            val hint = getString(
-                if (search == Search.GIF) R.string.keyhack_gif_search_hint else R.string.keyhack_emoji_search_hint,
-            )
+            renderSearchStrip(s)
+            return
+        }
+        val undo = undoDelete
+        if (undo != null && composing.isEmpty()) {
             s.show(
                 listOf(
-                    StripView.Item("search_back", "‹", weight = 0.6f, large = true),
                     StripView.Item(
-                        "search_field",
-                        if (searchQuery.isEmpty()) "🔍 $hint" else "🔍 $searchQuery▏",
-                        weight = 4f,
-                        dim = searchQuery.isEmpty(),
+                        "undo_delete",
+                        "↶  " + getString(R.string.keyhack_undo),
+                        weight = UNDO_CHIP_WEIGHT,
+                        accent = true,
                     ),
-                    StripView.Item("search_clear", "✕", weight = 0.6f),
+                    StripView.Item("", undo.trim().replace('\n', ' ').takeLast(PREVIEW_CHARS), weight = 3f, dim = true),
                 ),
             )
             return
         }
+        renderWordStrip(s)
+    }
+
+    private fun renderSearchStrip(s: StripView) {
+        val hint = getString(
+            when (search) {
+                Search.GIF -> R.string.keyhack_gif_search_hint
+                Search.COMMAND -> R.string.keyhack_palette_hint
+                else -> R.string.keyhack_emoji_search_hint
+            },
+        )
+        s.show(
+            listOf(
+                StripView.Item("search_back", "‹", weight = 0.6f, large = true),
+                StripView.Item(
+                    "search_field",
+                    if (searchQuery.isEmpty()) "🔍 $hint" else "🔍 $searchQuery▏",
+                    weight = 4f,
+                    dim = searchQuery.isEmpty(),
+                ),
+                StripView.Item("search_clear", "✕", weight = 0.6f),
+            ),
+        )
+    }
+
+    private fun renderWordStrip(s: StripView) {
         val words = if (composing.isNotEmpty()) suggestionWords() else predictions.map { WordSlot(it.word, false) }
         val fix = grammarFix
         if (fix != null && composing.isEmpty() && !stripShowsToolbar) {
@@ -1031,6 +1160,14 @@ class KeyHackImeService :
         }
         val items = ArrayList<StripView.Item>()
         items += StripView.Item("toolbar", "‹", weight = 0.5f, large = true, dim = true)
+        snippetForComposing()?.let {
+            items += StripView.Item(
+                "snip",
+                "✎ " + it.text.replace('\n', ' '),
+                weight = SNIPPET_CHIP_WEIGHT,
+                accent = true,
+            )
+        }
         for (w in words) items += StripView.Item("w:" + w.word, w.label, weight = 1.5f, bold = w.bold)
         emojiForComposing()?.let { items += StripView.Item("x:$it", it, weight = EMOJI_SLOT_WEIGHT, emoji = true) }
         s.show(items, withDividers = true)
@@ -1117,6 +1254,10 @@ class KeyHackImeService :
             id.startsWith("x:") -> pickEmojiSuggestion(id.substring(2))
 
             id == "g" -> applyGrammarFix()
+
+            id == "undo_delete" -> undoWordDelete()
+
+            id == "snip" -> snippetForComposing()?.let { expandSnippet(it) }
 
             id == "toolbar" -> {
                 stripShowsToolbar = true
@@ -1228,6 +1369,7 @@ class KeyHackImeService :
 
                 Panel.TOOLS -> toolsPanel ?: ToolsPanel(this).also {
                     it.listener = this
+                    it.snippets = snippets.all()
                     toolsPanel = it
                     frame.addView(it)
                 }
@@ -1630,6 +1772,121 @@ class KeyHackImeService :
         showDefaultStrip()
     }
 
+    // ------------------------------------------------- snippets and palette
+
+    private fun snippetForComposing(): Snippet? =
+        if (composing.isEmpty() || !policy.suggestions) null else snippets.forTrigger(composing.toString())
+
+    /** Replaces the typed trigger ("end") with its snippet. */
+    private fun expandSnippet(snippet: Snippet) {
+        val ic = currentInputConnection ?: return
+        resetComposing(finish = false)
+        ownEdit { ic.commitText(snippet.text, 1) }
+        afterInsert()
+    }
+
+    private fun insertText(text: String) {
+        val ic = currentInputConnection ?: return
+        commitComposing(autocorrect = false)
+        ic.commitText(text, 1)
+        afterInsert()
+    }
+
+    private fun afterInsert() {
+        revert = null
+        autoSpace = false
+        previousWordStale = true
+        updateAutoCaps()
+        showDefaultStrip()
+    }
+
+    override fun onSnippet(snippet: Snippet) {
+        showPanel(Panel.KEYBOARD)
+        insertText(snippet.text)
+    }
+
+    override fun onSnippetFromSelection() {
+        val ic = currentInputConnection
+        val selected = ic?.getSelectedText(0)?.toString()?.takeIf { it.isNotBlank() }
+        val text = selected ?: clipboardText()
+        if (text == null) {
+            showToolMessage(getString(R.string.keyhack_snippet_select_first))
+            return
+        }
+        showToolMessage(
+            getString(if (snippets.add("", text)) R.string.keyhack_snippet_saved else R.string.keyhack_msg_failed),
+        )
+    }
+
+    /** What is on the clipboard now, unless the app that copied it marked it sensitive. */
+    private fun clipboardText(): String? {
+        val clip = runCatching { clipboardManager.primaryClip }.getOrNull() ?: return null
+        if (clip.description.extras?.getBoolean(EXTRA_IS_SENSITIVE) == true || clip.itemCount == 0) return null
+        return clip.getItemAt(0).text?.toString()?.takeIf { it.isNotBlank() }
+    }
+
+    override fun onSnippetsEdit() {
+        val intent = packageManager.getLaunchIntentForPackage(packageName) ?: return
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        intent.putExtra(EXTRA_EDIT_SNIPPETS, true)
+        startActivity(intent)
+    }
+
+    override fun onPaletteOpen() = openSearch(Search.COMMAND)
+
+    /** Everything the palette can run, in the order shown before anything is typed. */
+    private fun paletteEntries(): List<PaletteEntry> = buildList {
+        add(PaletteEntry("p:clip", "📋 " + getString(R.string.keyhack_clipboard_title), "clipboard copy paste colar"))
+        add(PaletteEntry("p:emoji", "☺ Emoji", "smiley"))
+        if (gifAllowed()) add(PaletteEntry("p:gif", "GIF", "giphy"))
+        add(PaletteEntry("p:sticker", "🖼 " + getString(R.string.keyhack_sticker), "sticker figurinha whatsapp"))
+        for (s in snippets.all()) {
+            add(PaletteEntry("s:${s.id}", "✎ " + s.text.replace('\n', ' ').take(PREVIEW_CHARS), s.trigger))
+        }
+        add(PaletteEntry("t:incognito", "🕶 " + getString(R.string.keyhack_cmd_incognito), "incognito privado"))
+        add(PaletteEntry("t:mode", "DEV " + getString(R.string.keyhack_cmd_mode), "simple advanced dev terminal"))
+        if (advanced) add(PaletteEntry("t:pc", "PC " + getString(R.string.keyhack_cmd_pc), "pc layout terminal"))
+        add(PaletteEntry("t:onehand", "✋ " + getString(R.string.keyhack_cmd_onehand), "one hand"))
+        for (a in EditAction.entries) {
+            add(PaletteEntry("e:${a.name}", getString(a.label), a.name.lowercase().replace('_', ' ')))
+        }
+        for (d in DevTool.entries) add(PaletteEntry("d:${d.name}", d.label, d.name.lowercase().replace('_', ' ')))
+        add(PaletteEntry("a:settings", "⚙ " + getString(R.string.keyhack_cmd_settings), "settings preferences"))
+        add(PaletteEntry("a:switch", "⌨ " + getString(R.string.keyhack_cmd_switch), "keyboard ime"))
+        add(PaletteEntry("a:hide", "⌄ " + getString(R.string.keyhack_cmd_hide), "hide close"))
+    }
+
+    private fun runPaletteEntry(id: String, closed: Boolean = false) {
+        if (!closed) {
+            closeSearch()
+            showPanel(Panel.KEYBOARD)
+            renderStrip()
+        }
+        val arg = id.substringAfter(':')
+        when (id.substringBefore(':')) {
+            "p" -> when (arg) {
+                "clip" -> openClipboard()
+                "emoji" -> onCommand(Command.EMOJI)
+                "gif" -> onCommand(Command.GIF)
+                "sticker" -> openStickers()
+            }
+
+            "s" -> snippets.all().firstOrNull { it.id.toString() == arg }?.let { insertText(it.text) }
+
+            "t" -> onStripItem(arg)
+
+            "e" -> runCatching { EditAction.valueOf(arg) }.getOrNull()?.let(::onEditAction)
+
+            "d" -> runCatching { DevTool.valueOf(arg) }.getOrNull()?.let(::onDevTool)
+
+            "a" -> when (arg) {
+                "settings" -> openSettings()
+                "switch" -> onCommand(Command.IME_PICKER)
+                "hide" -> requestHideSelf(0)
+            }
+        }
+    }
+
     // --------------------------------------------------------------- search
 
     private fun openSearch(target: Search) {
@@ -1682,6 +1939,7 @@ class KeyHackImeService :
         when (target) {
             Search.EMOJI -> showPanel(Panel.EMOJI)
             Search.GIF -> showPanel(Panel.GIF)
+            Search.COMMAND -> showPanel(Panel.TOOLS)
             Search.NONE -> Unit
         }
         renderStrip()
@@ -1729,6 +1987,16 @@ class KeyHackImeService :
             main.postDelayed(liveGifSearch, LIVE_GIF_DELAY_MS)
         }
         val results = searchResults ?: return
+        if (search == Search.COMMAND) {
+            results.visibility = View.VISIBLE
+            results.colors = colors
+            results.show(
+                CommandPalette.rank(searchQuery.toString(), paletteEntries(), PALETTE_RESULTS)
+                    .map { StripView.Item("c:" + it.id, it.label) },
+                withDividers = true,
+            )
+            return
+        }
         if (search != Search.EMOJI) {
             results.visibility = View.GONE
             return
@@ -1748,6 +2016,10 @@ class KeyHackImeService :
     }
 
     private fun onSearchResult(id: String) {
+        if (id.startsWith("c:")) {
+            runPaletteEntry(id.substring(2))
+            return
+        }
         if (!id.startsWith("e:")) return
         val emoji = id.substring(2)
         onEmoji(emoji)
@@ -1766,6 +2038,12 @@ class KeyHackImeService :
 
             Search.EMOJI -> showPanel(Panel.EMOJI)
 
+            // Enter runs the best match.
+            Search.COMMAND -> {
+                showPanel(Panel.KEYBOARD)
+                CommandPalette.rank(q, paletteEntries(), 1).firstOrNull()?.let { runPaletteEntry(it.id, closed = true) }
+            }
+
             Search.NONE -> Unit
         }
         renderStrip()
@@ -1781,12 +2059,24 @@ class KeyHackImeService :
         private const val LIVE_GIF_DELAY_MS = 350L
         private const val MAX_STICKER_EMOJI = 160
         const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
+        const val EXTRA_EDIT_SNIPPETS = "com.reinanbr.keyhack.EDIT_SNIPPETS"
+        private const val SNIPPET_CHIP_WEIGHT = 2f
+        private const val PALETTE_RESULTS = 4
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64
         private const val EMOJI_SLOT_WEIGHT = 0.8f
         private const val ONE_HAND_FRACTION = 0.82f
         private const val FRESH_CLIP_MS = 2 * 60 * 1000L
         private const val GRAMMAR_LOOKBACK = 200
+        private const val SWIPE_LOOKBACK = 1000
+        private const val MAX_SWIPE_WORDS = 40
+        private const val PREVIEW_CHARS = 40
+        private const val UNDO_MS = 5000L
+        private const val UNDO_CHIP_WEIGHT = 1.6f
+
+        /** Held Delete switches to words after this many repeats (~1.6 s), one word every few repeats. */
+        private const val WORD_DELETE_AFTER = 24
+        private const val WORD_DELETE_EVERY = 3
         private const val GRAMMAR_CHIP_WEIGHT = 2.6f
         private const val CHIP_CHARS = 60
 

@@ -97,7 +97,7 @@
   <string name="lang_pt">Português (Brasil)</string>
   <string name="privacy_body">Sem analytics, sem relatórios de falha, sem telemetria. As palavras aprendidas ficam num arquivo privado que nunca entra em backup. O que é digitado em campos de senha e em apps que pedem aprendizado não personalizado nunca é aprendido. Use o botão 🕶 da barra para digitar em modo anônimo.</string>
   <string name="help_title">Dicas</string>
-  <string name="help_body">• DEV na barra do teclado troca entre o teclado simples (conversa) e o avançado (Ctrl, Alt, setas, terminal).\n• Deslize para cima numa tecla para digitar o símbolo do canto (@ _ / \" e outros; no avançado também { } [ ]); toque longo para acentos.\n• ?123 tem todos os símbolos de programação numa página só.\n• Deslize na barra de espaço para mover o cursor.\n• Toque longo no espaço troca de teclado; toque longo na vírgula abre as configurações.\n• Barra: ☺ emoji, GIF, 🖼 figurinhas, 📋 histórico da área de transferência, &lt;/&gt; ferramentas dev (maiúsculas, Base64, JSON, hashes, UUID…), modo PC, 🕶 anônimo.\n• Acabou de copiar algo? Aparece na barra (📋) para colar com um toque.\n• Um chip ✓ na barra corrige a gramática das palavras que você acabou de digitar (\"nós vai\" → \"nós vamos\"); toque para aplicar.</string>
+  <string name="help_body">• DEV na barra do teclado troca entre o teclado simples (conversa) e o avançado (Ctrl, Alt, setas, terminal).\n• Deslize para cima numa tecla para digitar o símbolo do canto (@ _ / \" e outros; no avançado também { } [ ]); toque longo para acentos.\n• ?123 tem todos os símbolos de programação numa página só.\n• Deslize na barra de espaço para mover o cursor.\n• Toque longo no espaço troca de teclado; toque longo na vírgula abre as configurações.\n• Barra: ☺ emoji, GIF, 🖼 figurinhas, 📋 histórico da área de transferência, &lt;/&gt; ferramentas dev (maiúsculas, Base64, JSON, hashes, UUID…), modo PC, 🕶 anônimo.\n• Acabou de copiar algo? Aparece na barra (📋) para colar com um toque.\n• Deslize o ⌫ para a esquerda para apagar palavras inteiras (solte para apagar, ↶ para desfazer).\n• Painel &lt;/&gt;: aba Snippets (textos salvos; digitar o atalho de um snippet oferece o texto na barra) e 🔍 para buscar qualquer comando.\n• Um chip ✓ na barra corrige a gramática das palavras que você acabou de digitar (\"nós vai\" → \"nós vamos\"); toque para aplicar.</string>
   <string name="section_clipboard">Área de transferência</string>
   <string name="pref_clipboard_history">Histórico da área de transferência</string>
   <string name="pref_clipboard_history_summary">Guarda os textos que você copia para colar de novo pelo botão 📋. Criptografado com uma chave que nunca sai deste celular; nunca guarda de campos de senha, do modo anônimo nem cópias marcadas como sensíveis.</string>
@@ -109,4 +109,16 @@
   <string name="clipboard_deleted">Histórico da área de transferência apagado</string>
   <string name="pref_grammar">Sugestões de gramática</string>
   <string name="pref_grammar_summary">Depois de cada palavra, verifica concordância e erros comuns (\"nós vai\" → \"nós vamos\", \"a muito tempo\" → \"há muito tempo\") neste celular e oferece a correção primeiro na barra de sugestões (✓). Nada muda até você tocar nela.</string>
+  <string name="pref_vibration_ms">Duração da vibração</string>
+  <string name="pref_vibration_ms_help">0 usa a vibração de teclado do sistema, que fica muda quando o retorno tátil do celular está desligado. Qualquer outro valor faz o KeyHack vibrar por conta própria, por esse tanto de milissegundos.</string>
+  <string name="section_snippets">Snippets (textos salvos)</string>
+  <string name="snippets_summary">Textos salvos: um endereço, uma chave Pix, uma resposta que você manda sempre. Digite o atalho de um snippet e ele aparece na barra de sugestões; todos ficam no painel &lt;/&gt; do teclado, aba Snippets. Guardados criptografados, nunca vão para backup.</string>
+  <string name="snippet_add">Adicionar snippet</string>
+  <string name="snippet_trigger">Atalho (opcional)</string>
+  <string name="snippet_trigger_help">Uma palavra que você digita para receber este texto, como \"end\" ou \"pix\"</string>
+  <string name="snippet_trigger_preview">Digitar \"%1$s\" oferece este texto</string>
+  <string name="snippet_trigger_taken">Outro snippet já usa este atalho</string>
+  <string name="snippet_text">Texto</string>
+  <string name="snippet_save">Salvar</string>
+  <string name="snippet_delete">Apagar</string>
 </resources>

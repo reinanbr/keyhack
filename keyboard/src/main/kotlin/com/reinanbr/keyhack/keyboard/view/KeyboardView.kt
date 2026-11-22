@@ -7,6 +7,8 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.media.AudioManager
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -33,7 +35,8 @@ import kotlin.math.abs
  *
  * Gestures: tap; hold for long-press alternatives (slide to pick, release to
  * commit); hold Delete or an arrow to repeat; slide on the space bar to move
- * the cursor. A second finger landing commits the first key (rollover).
+ * the cursor; slide Delete to the left to select whole words, released to
+ * delete them. A second finger landing commits the first key (rollover).
  *
  * onDraw allocates nothing; geometry is rebuilt only on size/layout changes.
  */
@@ -51,6 +54,15 @@ class KeyboardView(context: Context) : View(context) {
 
         /** The finger holding Shift was lifted. */
         fun onShiftUp()
+
+        /** A held key repeats; [count] is 1 for the first repeat. The IME may speed up (words instead of letters). */
+        fun onRepeat(key: Key, count: Int) = onKey(key, key.action)
+
+        /** Delete dragged left: select the [words] words before the cursor (0: back to none). */
+        fun onDeleteSwipe(words: Int) = Unit
+
+        /** The finger dragging Delete lifted: delete what [onDeleteSwipe] selected. */
+        fun onDeleteSwipeEnd() = Unit
     }
 
     var listener: Listener? = null
@@ -140,6 +152,9 @@ class KeyboardView(context: Context) : View(context) {
         }
 
     var hapticsEnabled: Boolean = true
+
+    /** Key-press vibration length in ms; 0 uses the system's keyboard haptic (which follows its touch setting). */
+    var vibrationMs: Int = 0
     var soundEnabled: Boolean = false
     var longPressMillis: Long = DEFAULT_LONG_PRESS_MS
 
@@ -154,6 +169,8 @@ class KeyboardView(context: Context) : View(context) {
     private val swipeStepPx = SWIPE_STEP_DP * density
     private val swipeSlopPx = SWIPE_SLOP_DP * density
     private val flickSlopPx = FLICK_SLOP_DP * density
+    private val deleteStepPx = DELETE_STEP_DP * density
+    private val vibrator: Vibrator? = context.getSystemService(Vibrator::class.java)
 
     private fun sp(value: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
@@ -198,25 +215,32 @@ class KeyboardView(context: Context) : View(context) {
         /** Swiped up on a key with a hint: types the hint instead of the key. */
         var flick = false
 
+        /** Dragging Delete to the left; [deleteWords] words are selected. */
+        var deleteSwipe = false
+        var deleteWords = 0
+
         fun clear() {
             key = NO_KEY
             consumed = false
             popup = false
             trackpad = false
             flick = false
+            deleteSwipe = false
+            deleteWords = 0
         }
     }
 
     private val pointers = Array(MAX_POINTERS) { Pointer() }
 
     private var repeatingKey = NO_KEY
+    private var repeatCount = 0
     private val repeatRunnable =
         object : Runnable {
             override fun run() {
                 val g = geometry ?: return
                 if (repeatingKey == NO_KEY) return
                 val key = g.keys[repeatingKey].key
-                listener?.onKey(key, key.action)
+                listener?.onRepeat(key, ++repeatCount)
                 postDelayed(this, REPEAT_INTERVAL_MS)
             }
         }
@@ -438,6 +462,13 @@ class KeyboardView(context: Context) : View(context) {
             val p = pointers[id]
             if (id == except || p.key == NO_KEY || p.consumed || p.popup || p.trackpad) continue
             val key = g.keys[p.key].key
+            if (key.action == KeyAction.Delete && !p.deleteSwipe && p.key == repeatingKey && repeatCount == 0) {
+                // A tap on Delete not yet fired (it fires on release): fire it first.
+                stopRepeat()
+                fire(key)
+                p.consumed = true
+                continue
+            }
             if (key.repeats || key.action !is KeyAction.Character) continue
             if (p.flick) key.hint?.let { listener?.onPopupText(it) } else fire(key)
             p.consumed = true
@@ -454,10 +485,15 @@ class KeyboardView(context: Context) : View(context) {
             shiftPointer = pointerId
             listener?.onShiftDown()
         } else if (key.repeats) {
-            // Repeating keys fire on press, then repeat while held.
-            fire(key)
-            pointers[pointerId].consumed = true
+            // Repeating keys repeat while held. Delete fires on release (or when it starts
+            // repeating), so dragging it to delete words does not first delete a letter;
+            // the others fire on press.
+            if (key.action != KeyAction.Delete) {
+                fire(key)
+                pointers[pointerId].consumed = true
+            }
             repeatingKey = index
+            repeatCount = 0
             postDelayed(repeatRunnable, REPEAT_START_DELAY_MS)
         } else if (key.popup.isNotEmpty() || key.longPress != null) {
             cancelKeyLongPress()
@@ -501,6 +537,10 @@ class KeyboardView(context: Context) : View(context) {
             return
         }
         val key = g.keys[p.key].key
+        if (key.action == KeyAction.Delete) {
+            trackDeleteSwipe(p, x)
+            return
+        }
         if (!p.flick && !p.consumed && key.hint != null && key.action is KeyAction.Character &&
             p.downY - y > flickSlopPx
         ) {
@@ -511,20 +551,39 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
             return
         }
-        if (key.action == KeyAction.Space && !p.consumed) {
-            if (!p.trackpad && abs(x - p.downX) > swipeSlopPx) {
-                p.trackpad = true
-                p.lastStepX = x
-                if (longPressPointer == pointerId) cancelKeyLongPress()
-                invalidate()
+        if (key.action == KeyAction.Space && !p.consumed) trackSpaceSwipe(pointerId, p, x)
+    }
+
+    /** Sliding on the space bar moves the cursor, one step per [swipeStepPx]. */
+    private fun trackSpaceSwipe(pointerId: Int, p: Pointer, x: Float) {
+        if (!p.trackpad && abs(x - p.downX) > swipeSlopPx) {
+            p.trackpad = true
+            p.lastStepX = x
+            if (longPressPointer == pointerId) cancelKeyLongPress()
+            invalidate()
+        }
+        if (p.trackpad) {
+            val steps = ((x - p.lastStepX) / swipeStepPx).toInt()
+            if (steps != 0) {
+                p.lastStepX += steps * swipeStepPx
+                listener?.onCursorSwipe(steps)
             }
-            if (p.trackpad) {
-                val steps = ((x - p.lastStepX) / swipeStepPx).toInt()
-                if (steps != 0) {
-                    p.lastStepX += steps * swipeStepPx
-                    listener?.onCursorSwipe(steps)
-                }
-            }
+        }
+    }
+
+    /** Delete dragged left selects words, one more per [deleteStepPx]; dragging back unselects. */
+    private fun trackDeleteSwipe(p: Pointer, x: Float) {
+        val dx = p.downX - x
+        if (!p.deleteSwipe) {
+            if (dx <= swipeSlopPx) return
+            p.deleteSwipe = true
+            stopRepeat()
+        }
+        val words = ((dx - swipeSlopPx) / deleteStepPx).toInt().let { if (dx > swipeSlopPx) it + 1 else 0 }
+        if (words != p.deleteWords) {
+            p.deleteWords = words
+            if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            listener?.onDeleteSwipe(words)
         }
     }
 
@@ -538,13 +597,19 @@ class KeyboardView(context: Context) : View(context) {
         if (previewPointer == pointerId) hidePreview()
         val key = g.keys[index].key
         when {
+            p.deleteSwipe -> listener?.onDeleteSwipeEnd()
+
             p.popup -> {
                 val text = popupView?.selectedText()
                 popupView?.dismiss()
                 if (text != null) listener?.onPopupText(text)
             }
 
-            index == repeatingKey -> stopRepeat()
+            index == repeatingKey -> {
+                val tapped = !p.consumed && repeatCount == 0
+                stopRepeat()
+                if (tapped) fire(key)
+            }
 
             p.consumed || p.trackpad -> Unit
 
@@ -599,8 +664,17 @@ class KeyboardView(context: Context) : View(context) {
         listener?.onKey(key, key.action)
     }
 
+    // The app's manifest declares VIBRATE; this library's lint cannot see it.
+    @SuppressLint("MissingPermission")
     private fun feedback() {
-        if (hapticsEnabled) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        if (hapticsEnabled) {
+            val ms = vibrationMs
+            if (ms > 0 && vibrator?.hasVibrator() == true) {
+                vibrator.vibrate(VibrationEffect.createOneShot(ms.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+        }
         if (soundEnabled) audio?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, SOUND_VOLUME)
     }
 
@@ -627,6 +701,11 @@ class KeyboardView(context: Context) : View(context) {
 
     fun cancelAllPresses() {
         if (shiftPointer >= 0) releaseShift()
+        // A cancelled drag deletes nothing.
+        if (pointers.any { it.deleteSwipe }) {
+            listener?.onDeleteSwipe(0)
+            listener?.onDeleteSwipeEnd()
+        }
         pointers.forEach { it.clear() }
         stopRepeat()
         cancelKeyLongPress()
@@ -660,6 +739,7 @@ class KeyboardView(context: Context) : View(context) {
         private const val LOCK_BAR_BOTTOM_GAP = 1.5f
         private const val SWIPE_STEP_DP = 10f
         private const val SWIPE_SLOP_DP = 14f
+        private const val DELETE_STEP_DP = 28f
         private const val SOUND_VOLUME = 0.3f
         const val DEFAULT_LONG_PRESS_MS = 300L
         private const val REPEAT_START_DELAY_MS = 400L

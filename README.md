@@ -74,6 +74,10 @@ install; use it only for testing.
   emoji as a WhatsApp sticker.
 - **Clipboard history** (opt-in, encrypted, expiring, with pinned items) and
   one-tap paste of what you just copied.
+- **Snippets** (encrypted saved texts with typed shortcuts) and a **command
+  palette** that finds any panel, toggle or tool by name.
+- **Ergonomics:** slide Delete to delete whole words (with undo), held Delete
+  speeds up to words, space-bar cursor slide, adjustable vibration.
 - **Dev tools:** case conversions (camelCase, snake_case…), Base64, URL and
   HTML escaping, JSON pretty/minify, MD5/SHA hashes, UUID v4/v7, timestamps.
 - **Privacy controls:** incognito mode; nothing learned or suggested in
@@ -196,7 +200,7 @@ the diff:
 | M4 | Emoji ✅, opt-in encrypted clipboard history ✅ | ✅ |
 | M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅; WhatsApp sticker packs | partial |
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
-| M7 | Dev tools: trackpad ✅, transforms ✅, snippets, command palette | partial |
+| M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing | |
 | M9 | Floating mode (one-handed ✅), theme editor, backup export, `offline` flavor without network, F-Droid | |
 
