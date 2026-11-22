@@ -818,6 +818,10 @@ class KeyHackImeService :
         if (shift.state == ShiftState.ONCE || shift.isHeld) shift.onCharacterCommitted()
         revert = null
         autoSpace = false
+        // The key (Ctrl+A, an arrow...) changed the text or the cursor, and the word being typed was
+        // committed: suggestions for it are stale, and picking one would type over a selection.
+        previousWordStale = true
+        showDefaultStrip()
     }
 
     private fun switchLayer(target: String) {
