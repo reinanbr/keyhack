@@ -16,7 +16,7 @@ data class GifPage(val items: List<GifItem>, val next: String?)
 
 /**
  * A GIF search service. Implementations only build URLs and parse responses;
- * [HttpFetcher] does the network I/O with a host allowlist.
+ * the [GifNetwork] fetcher does the network I/O with a host allowlist.
  *
  * BYOK: the user supplies their own API key in settings. No key is ever
  * committed to the repository.

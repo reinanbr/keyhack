@@ -54,4 +54,5 @@ as dynamic code loading, which is banned separately (lint and review).
 - M5 must add the WhatsApp sticker provider and share-target activity to the
   allowlist.
 - Update (ADR 0004): the companion app was dropped; the single app's
-  allowlist gained `INTERNET`, and network code is confined to `:media`.
+  allowlist gained `INTERNET`, and network code is confined to `:media`
+  (moved to `:net` on 2026-11-21; the offline flavor allows only `VIBRATE`).

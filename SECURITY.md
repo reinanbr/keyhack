@@ -46,7 +46,9 @@ unlocked phone, and the behaviour of third-party GIF providers.
   (plus permissions it defines itself with `protectionLevel="signature"`), or
   exports a component outside a fixed allowlist. See
   `docs/adr/0002-core-permission-and-export-policy.md`.
-- All network code lives in the `:media` module; detekt rejects network
-  imports anywhere else. See `docs/adr/0004-single-app-gif-network.md`.
+- All network code lives in the `:net` module; detekt rejects network
+  imports anywhere else. The offline build leaves `:net` out and has no
+  `INTERNET` permission (CI fails if it ever does). See
+  `docs/adr/0004-single-app-gif-network.md`.
 - `aapt2 dump permissions <apk>` on a release APK lists what it can do.
 - Release builds strip all `android.util.Log` calls.

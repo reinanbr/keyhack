@@ -12,6 +12,7 @@ import com.reinanbr.keyhack.core.jsonObject
 import com.reinanbr.keyhack.core.number
 import com.reinanbr.keyhack.core.string
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -48,7 +49,7 @@ class GifRepository(context: Context) {
                         } else {
                             provider.searchUrl(query.trim(), cursor, PAGE_SIZE, locale)
                         }
-                    val body = HttpFetcher(provider.allowedHosts).get(url, MAX_JSON_BYTES)
+                    val body = fetch(url, provider.allowedHosts, MAX_JSON_BYTES)
                     provider.parse(String(body, Charsets.UTF_8))
                 }
             main.post { callback(result) }
@@ -62,7 +63,7 @@ class GifRepository(context: Context) {
         }
         val hosts = provider?.allowedHosts ?: ALL_HOSTS
         io.execute {
-            val bytes = runCatching { HttpFetcher(hosts).get(url, MAX_PREVIEW_BYTES) }.getOrNull()
+            val bytes = runCatching { fetch(url, hosts, MAX_PREVIEW_BYTES) }.getOrNull()
             if (bytes != null) previews.put(url, bytes)
             main.post { callback(bytes) }
         }
@@ -77,7 +78,7 @@ class GifRepository(context: Context) {
                     dir.mkdirs()
                     val file = File(dir, sha(item.full.url) + ".gif")
                     if (!file.isFile) {
-                        val bytes = HttpFetcher(hosts).get(item.full.url, MAX_GIF_BYTES)
+                        val bytes = fetch(item.full.url, hosts, MAX_GIF_BYTES)
                         val tmp = File(dir, file.name + ".tmp")
                         tmp.writeBytes(bytes)
                         tmp.renameTo(file)
@@ -88,6 +89,9 @@ class GifRepository(context: Context) {
             main.post { callback(result) }
         }
     }
+
+    private fun fetch(url: String, hosts: Set<String>, maxBytes: Int): ByteArray =
+        (GifNetwork.fetcher ?: throw IOException("this build has no network access")).get(url, hosts, maxBytes)
 
     private fun trim() {
         val files = dir.listFiles().orEmpty().sortedByDescending { it.lastModified() }

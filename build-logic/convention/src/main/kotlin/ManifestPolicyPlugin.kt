@@ -22,6 +22,9 @@ abstract class ManifestPolicyExtension {
     abstract val allowedPermissions: SetProperty<String>
     abstract val allowedExported: SetProperty<String>
     abstract val requiredPermissions: MapProperty<String, String>
+
+    /** Per product flavor, the permissions its release builds may hold instead of [allowedPermissions]. */
+    abstract val flavorAllowedPermissions: MapProperty<String, List<String>>
 }
 
 /**
@@ -42,7 +45,11 @@ class ManifestPolicyPlugin : Plugin<Project> {
                             group = "verification"
                             description = "Fails if the merged ${variant.name} manifest breaks the permission policy."
                             mergedManifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
-                            allowedPermissions.set(ext.allowedPermissions)
+                            allowedPermissions.set(
+                                ext.flavorAllowedPermissions.getting(variant.flavorName.orEmpty())
+                                    .map { it.toSet() }
+                                    .orElse(ext.allowedPermissions),
+                            )
                             allowedExported.set(ext.allowedExported)
                             requiredPermissions.set(ext.requiredPermissions)
                             report.set(layout.buildDirectory.file("reports/manifest-policy/${variant.name}.txt"))

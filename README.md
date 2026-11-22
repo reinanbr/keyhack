@@ -88,10 +88,13 @@ install; use it only for testing.
 ## Security boundary: one app, one network use
 
 KeyHack (`com.reinanbr.keyhack`) holds two permissions: `VIBRATE` (haptics)
-and `INTERNET`, used **only** for GIF search ([ADR 0004](docs/adr/0004-single-app-gif-network.md)):
+and `INTERNET`, used **only** for GIF search ([ADR 0004](docs/adr/0004-single-app-gif-network.md)).
+The **offline** build (`KeyHack-<version>-offline.apk`) holds only `VIBRATE`:
+it leaves out the network module, so it has no HTTP client and cannot reach
+the network at all; everything except GIF search works the same.
 
-- all network code lives in the `:media` module; a detekt rule rejects network
-  imports everywhere else, so one small module covers every request;
+- all network code lives in the `:net` module (one file); a detekt rule rejects
+  network imports everywhere else, so one small module covers every request;
 - requests are made only while the GIF panel is open, only with the API key
   you entered, and carry only the GIF search text (never the field you are
   typing in); no GIF button in incognito or password fields;
@@ -118,7 +121,7 @@ your IP address.
 
 | # | Adversary or risk | Main mitigations |
 |---|---|---|
-| 1 | The keyboard itself as a keylogger | Network code confined to `:media` by a build rule, GIF search only; learning stores word/pair counts only, never sentences; no logging of typed text |
+| 1 | The keyboard itself as a keylogger | Network code confined to `:net` by a build rule, GIF search only, absent from the offline build; learning stores word/pair counts only, never sentences; no logging of typed text |
 | 2 | Malicious apps on the device | Minimal exported components (allowlisted at build time); non-exported FileProvider for GIFs; read-only, traversal-safe sticker provider |
 | 3 | Malicious files (layouts, themes, snippets, dictionaries, media) | Size caps, magic-byte MIME sniffing, strict schemas, copy-then-process, memory-safe decoders, fuzzed parsers |
 | 4 | Network attackers | HTTPS only, no cleartext, no user CAs, provider host allowlist; responses size-capped and parsed as untrusted |
@@ -139,7 +142,8 @@ autocorrect, no learning, no clipboard capture and no snippet expansion
 :layouts      bundled JSON layouts (see layouts/README.md)
 :suggest      dictionaries, autocorrect, prediction, grammar rules, count-only learning
 :emoji        emoji data, search, skin tones, kaomoji
-:media        GIF providers and the app's only HTTP client
+:media        GIF providers, cache and recents (no network code)
+:net          the app's only HTTP client; online build only
 :commit       commitContent and fallbacks
 :devtools     text transforms (case, Base64, JSON, hashes, UUID, time)
 :stickers     sticker library and converters                     (M5)
@@ -161,9 +165,10 @@ TalkBack as a virtual view.
 Requirements: JDK 21 and the Android SDK (platform 37).
 
 ```sh
-./gradlew assembleDebug                 # debug APK
+./gradlew assembleOnlineDebug           # debug APK (with GIF search)
+./gradlew assembleOfflineDebug          # debug APK without network code or INTERNET
 ./gradlew check                         # unit tests, lint, detekt/ktlint, manifest gate
-./gradlew assembleRelease               # R8-minified, unsigned unless signing env is set
+./gradlew assembleRelease               # both flavors, R8-minified, unsigned unless signing env is set
 ./gradlew detekt -PdetektAutoCorrect    # apply formatting fixes
 ```
 
@@ -204,7 +209,7 @@ the diff:
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |
-| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, backup export, `offline` flavor without network, F-Droid | partial |
+| M9 | Floating mode ✅ (one-handed ✅), theme editor ✅, `offline` flavor without network ✅, backup export, F-Droid | partial |
 
 ## Contributing and security
 

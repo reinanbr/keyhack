@@ -27,6 +27,7 @@ include(
     ":suggest",
     ":emoji",
     ":media",
+    ":net",
     ":stickers",
     ":commit",
     ":devtools",

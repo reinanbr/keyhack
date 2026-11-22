@@ -13,6 +13,21 @@ android {
         versionName = "0.2.0"
     }
 
+    // "online" has GIF search, the only network use (ADR 0004); "offline"
+    // leaves out :net, so the APK has no HTTP client and no INTERNET
+    // permission. Same package: install one or the other.
+    flavorDimensions += "network"
+    productFlavors {
+        create("online") {
+            dimension = "network"
+            isDefault = true
+        }
+        create("offline") {
+            dimension = "network"
+            versionNameSuffix = "-offline"
+        }
+    }
+
     // Stored uncompressed so the emoji font is memory-mapped, not inflated into RAM.
     androidResources {
         noCompress += "ttf"
@@ -22,10 +37,11 @@ android {
 // Threat model: the keyboard must not be able to leak keystrokes through
 // components or permissions nobody reviewed. This gate runs on the merged
 // release manifest (all libraries included) and fails `check` and
-// `assembleRelease`. INTERNET is allowed only for GIF search (ADR 0004).
-// Changing either list needs an ADR.
+// `assembleRelease`. INTERNET is allowed only for GIF search (ADR 0004),
+// and never in the offline build. Changing these lists needs an ADR.
 manifestPolicy {
     allowedPermissions.set(setOf("android.permission.VIBRATE", "android.permission.INTERNET"))
+    flavorAllowedPermissions.put("offline", listOf("android.permission.VIBRATE"))
     allowedExported.set(
         setOf(
             "com.reinanbr.keyhack.ime.KeyHackImeService",
@@ -45,6 +61,8 @@ dependencies {
     implementation(project(":clipboard"))
     implementation(project(":devtools"))
     implementation(project(":theme"))
+    implementation(project(":media"))
+    "onlineImplementation"(project(":net"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 }

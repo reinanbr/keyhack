@@ -42,31 +42,31 @@ style:
         value: 'kotlin.io.println'
       - reason: 'Typed text must never be printed.'
         value: 'kotlin.io.print'
-  # The IME holds INTERNET only for GIF search (ADR 0004). Network code lives
-  # in :media and nowhere else, so a review of that module covers every
-  # request the keyboard can make.
+  # The IME holds INTERNET only for GIF search (ADR 0004), and only in the
+  # online build. Network code lives in :net and nowhere else, so a review of
+  # that module covers every request the keyboard can make.
   ForbiddenImport:
     active: true
     forbiddenImports:
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'java.net.URL'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'java.net.URLConnection'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'java.net.HttpURLConnection'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'java.net.Socket'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'java.net.DatagramSocket'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'javax.net.*'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'javax.net.ssl.*'
-      - reason: 'Network access is confined to :media (ADR 0004).'
+      - reason: 'Network access is confined to :net (ADR 0004).'
         value: 'okhttp3.*'
       - reason: 'No WebViews in the keyboard.'
         value: 'android.webkit.*'
-    excludes: ['**/media/src/main/**']
+    excludes: ['**/net/src/main/**']
 
 # `!!` is flagged; a reviewed @Suppress("UnsafeCallOnNullableType") must carry
 # a justification comment.

@@ -69,8 +69,15 @@ All notable changes to KeyHack are listed here. The format follows
 - Vibration length setting (0–60 ms). 0 keeps the system's keyboard
   vibration, which some phones mute along with touch feedback.
 
+- Offline build: `KeyHack-<version>-offline.apk` has no network code and no
+  `INTERNET` permission, so it cannot reach the network at all. Everything
+  but GIF search works the same. The two builds share the package name:
+  install one or the other.
+
 ### Changed
 
+- The HTTP client moved to its own module, `:net`, which only the online
+  build includes; `:media` no longer has network code.
 - ⌫ deletes when released (or when held), not when touched, so a slide
   to delete words does not take a letter first.
 - The dev tools panel's editing actions (Copy, Paste, Undo…) are

@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-  <!--
-    GIF search is the only feature that uses the network (see docs/adr/0004).
-    Requests go only to the provider the user picked, over HTTPS, and only
-    after they open the GIF panel. Turning GIFs off in settings stops all
-    network use.
-  -->
-  <uses-permission android:name="android.permission.INTERNET" />
+  <!-- The INTERNET permission and the HTTP client live in :net (online build only). -->
 
   <application>
     <!-- Hands a downloaded GIF to the target app through commitContent. Not exported:

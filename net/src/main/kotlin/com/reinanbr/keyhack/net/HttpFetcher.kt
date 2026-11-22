@@ -1,5 +1,7 @@
-package com.reinanbr.keyhack.media
+package com.reinanbr.keyhack.net
 
+import com.reinanbr.keyhack.media.Fetcher
+import com.reinanbr.keyhack.media.GifNetwork
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.URL
@@ -68,5 +70,12 @@ class HttpFetcher(private val allowedHosts: Set<String>) {
         const val MAX_REDIRECTS = 3
         const val BUFFER = 16 * 1024
         val REDIRECT_CODES = setOf(301, 302, 303, 307, 308)
+    }
+}
+
+/** Hands GIF search its network access ([GifNetwork]). Called once at app start in the online build. */
+object Network {
+    fun install() {
+        GifNetwork.fetcher = Fetcher { url, hosts, maxBytes -> HttpFetcher(hosts).get(url, maxBytes) }
     }
 }

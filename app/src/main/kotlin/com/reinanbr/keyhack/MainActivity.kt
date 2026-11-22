@@ -64,6 +64,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.reinanbr.keyhack.clipboard.ClipboardStore
 import com.reinanbr.keyhack.data.KeyHackSettings
+import com.reinanbr.keyhack.media.GifNetwork
 import com.reinanbr.keyhack.stickers.StickerStore
 import java.io.File
 import kotlin.math.roundToInt
@@ -570,6 +571,10 @@ private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> 
 @Composable
 private fun GifSection(p: Prefs) {
     Section(stringResource(R.string.section_gif)) {
+        if (!GifNetwork.available) {
+            Text(stringResource(R.string.gif_offline_build), style = MaterialTheme.typography.bodyMedium)
+            return@Section
+        }
         val enabled = p.bool(K.GIF_ENABLED, true)
         SwitchRow(
             stringResource(R.string.pref_gif_enabled),

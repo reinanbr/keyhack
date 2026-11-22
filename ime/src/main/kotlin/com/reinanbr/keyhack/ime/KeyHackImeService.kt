@@ -56,6 +56,7 @@ import com.reinanbr.keyhack.keyboard.model.outputText
 import com.reinanbr.keyhack.keyboard.view.KeyPopupView
 import com.reinanbr.keyhack.keyboard.view.KeyboardView
 import com.reinanbr.keyhack.media.GifItem
+import com.reinanbr.keyhack.media.GifNetwork
 import com.reinanbr.keyhack.media.GifProvider
 import com.reinanbr.keyhack.media.GifRepository
 import com.reinanbr.keyhack.stickers.StickerStore
@@ -1697,7 +1698,8 @@ class KeyHackImeService :
     private fun gifLocale(): String = if (languages().first() == "pt") "pt-BR" else "en-US"
 
     /** GIF search is the only network use (ADR 0004): never in incognito or password fields. */
-    private fun gifAllowed(): Boolean = settings.gifEnabled && !incognito && policy.kind != FieldKind.PASSWORD
+    private fun gifAllowed(): Boolean =
+        GifNetwork.available && settings.gifEnabled && !incognito && policy.kind != FieldKind.PASSWORD
 
     private fun openGifs() {
         commitComposing(autocorrect = false)

@@ -64,3 +64,20 @@ The network is fenced in by these rules:
 - Any new network use needs a new ADR and a change to `:media`'s allowlist.
 - An `offline` flavor (no `:media`, no `INTERNET`) is the planned answer for
   users who want the strict guarantee back.
+
+## Update (2026-11-21): the offline build
+
+The HTTP client moved from `:media` to a new module, `:net` (one file plus
+the `INTERNET` permission). `:media` keeps the providers, cache and recents
+and reaches the network only through a `Fetcher` that `:net` installs at app
+start. The app has two product flavors:
+
+- `online`: includes `:net`; GIF search as described above.
+- `offline`: leaves `:net` out. The APK has no HTTP client and no `INTERNET`
+  permission, so the OS itself keeps it off the network; GIF search is not
+  offered. The manifest gate allows only `VIBRATE` for this flavor, and CI
+  fails the build if the offline APK requests `INTERNET`.
+
+The detekt import ban now exempts `:net` instead of `:media`. Point 1 above
+("one module, one client") reads `:net` for `:media`.
+

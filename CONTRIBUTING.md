@@ -5,7 +5,7 @@ changes is "safe first, then useful".
 
 ## Ground rules
 
-1. **Network only in `:media`, only for GIFs.** No network code in any other
+1. **Network only in `:net`, only for GIFs.** No network code in any other
    module, no WebViews, no dynamic code loading, no reflection-based plugins.
    The build enforces the permission list and the import ban (ADR 0004);
    reviewers enforce the rest.

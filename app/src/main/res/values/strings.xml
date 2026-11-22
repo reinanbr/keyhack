@@ -135,4 +135,5 @@
   <string name="color_hue">Hue</string>
   <string name="color_saturation">Saturation</string>
   <string name="color_brightness">Brightness</string>
+  <string name="gif_offline_build">This is the offline build: it has no network code and no internet permission, so GIF search is not included. Everything else works the same.</string>
 </resources>

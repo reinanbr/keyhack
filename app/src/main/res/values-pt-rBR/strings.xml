@@ -136,4 +136,5 @@
   <string name="color_hue">Matiz</string>
   <string name="color_saturation">Saturação</string>
   <string name="color_brightness">Brilho</string>
+  <string name="gif_offline_build">Esta é a versão offline: não tem código de rede nem permissão de internet, então a busca de GIFs não está incluída. Todo o resto funciona igual.</string>
 </resources>

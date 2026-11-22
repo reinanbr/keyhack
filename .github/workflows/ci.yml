@@ -50,11 +50,15 @@ jobs:
 
       - name: Release APK checksums and permissions
         run: |
-          sha256sum app/build/outputs/apk/release/*.apk
+          sha256sum app/build/outputs/apk/*/release/*.apk
           AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
-          for apk in app/build/outputs/apk/release/*.apk; do
+          for apk in app/build/outputs/apk/*/release/*.apk; do
             "$AAPT2" dump permissions "$apk"
           done
+          if "$AAPT2" dump permissions app/build/outputs/apk/offline/release/*.apk | grep -q INTERNET; then
+            echo "::error::offline APK requests INTERNET"
+            exit 1
+          fi
 
       # Signed with a throwaway debug key: for testing only. Released versions
       # are on the releases page (release.yml).
@@ -62,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: KeyHack-debug-${{ github.sha }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/*/debug/app-*-debug.apk
           if-no-files-found: error
           retention-days: 14
 
