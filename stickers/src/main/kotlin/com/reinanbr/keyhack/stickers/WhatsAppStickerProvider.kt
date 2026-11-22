@@ -124,8 +124,7 @@ class WhatsAppStickerProvider : ContentProvider() {
 
     private fun stickerCursor(p: StickerPack): Cursor {
         val c = MatrixCursor(STICKER_COLUMNS)
-        val emoji = p.emoji.joinToString(",")
-        for (f in p.stickers) c.addRow(arrayOf<Any?>(f, emoji, null))
+        for (f in p.stickers) c.addRow(arrayOf<Any?>(f, p.emojiOf(f).joinToString(","), null))
         return c
     }
 

@@ -60,6 +60,7 @@ manifestPolicy {
 
 dependencies {
     implementation(project(":ime"))
+    implementation(project(":emoji"))
     implementation(project(":core"))
     implementation(project(":data"))
     implementation(project(":stickers"))

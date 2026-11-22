@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -37,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -52,12 +52,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.reinanbr.keyhack.stickers.StickerPack
 import com.reinanbr.keyhack.stickers.StickerPackList
-import com.reinanbr.keyhack.stickers.StickerPackList.Problem
 import com.reinanbr.keyhack.stickers.StickerPackStore
 import com.reinanbr.keyhack.stickers.StickerStore
 import com.reinanbr.keyhack.stickers.WhatsApp
@@ -200,7 +201,7 @@ private fun PackRow(
     onAdd: (String) -> Unit,
     onEdit: () -> Unit,
 ) {
-    val valid = StickerPackList.problems(pack.name, pack.stickers, pack.emoji.joinToString(" ")).isEmpty()
+    val valid = StickerPackList.problems(pack.name, pack.stickers, pack.emoji).isEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(TRAY_DP.dp)) { first?.let { Thumb(it, Modifier.fillMaxSize()) } }
@@ -208,7 +209,8 @@ private fun PackRow(
                 Text(pack.name, style = MaterialTheme.typography.bodyLarge)
                 val count = pluralStringResource(R.plurals.pack_count, pack.stickers.size, pack.stickers.size)
                 val kind = if (pack.animated) " · " + stringResource(R.string.pack_animated) else ""
-                Text(count + kind + " · " + pack.emoji.joinToString(" "), style = MaterialTheme.typography.bodySmall)
+                val emoji = pack.allEmoji().take(ROW_EMOJI).joinToString(" ")
+                Text(count + kind + " · " + emoji, style = MaterialTheme.typography.bodySmall)
                 if (!valid) {
                     Text(
                         stringResource(R.string.pack_invalid),
@@ -237,22 +239,29 @@ private fun PackRow(
     }
 }
 
-/** Full-screen editor: name, emoji, and the stickers picked from the library, in the order picked. */
+/**
+ * Full-screen editor: the name and the stickers picked from the library, in
+ * the order picked. Tapping a picked sticker opens its emoji.
+ */
 @Composable
 private fun PackEditor(
     pack: StickerPack?,
     library: List<File>,
-    onSave: (String, List<String>, String) -> Unit,
+    onSave: (String, List<String>, Map<String, List<String>>) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val defaultName = stringResource(R.string.pack_default_name)
     var name by remember { mutableStateOf(pack?.name ?: defaultName) }
-    var emoji by remember { mutableStateOf(pack?.emoji?.joinToString(" ") ?: StickerPackList.DEFAULT_EMOJI) }
     val chosen = remember { mutableStateListOf<String>().apply { pack?.let { addAll(it.stickers) } } }
+    val emoji = remember { mutableStateMapOf<String, List<String>>().apply { pack?.let { putAll(it.emoji) } } }
+    // New picks get the emoji chosen last, so a pack of one mood needs one choice.
+    var lastEmoji by remember {
+        mutableStateOf(pack?.stickers?.lastOrNull()?.let(pack::emojiOf) ?: listOf(StickerPackList.DEFAULT_EMOJI))
+    }
+    var emojiFor by remember { mutableStateOf<File?>(null) }
     val problems = StickerPackList.problems(name, chosen, emoji)
     val mixedLibrary = remember(library) { library.map { StickerPackList.isAnimated(it.name) }.distinct().size > 1 }
-    val emojiHelp = if (Problem.BAD_EMOJI in problems) R.string.pack_bad_emoji else R.string.pack_emoji_help
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -267,31 +276,121 @@ private fun PackEditor(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
-                    value = emoji,
-                    onValueChange = { emoji = it },
-                    label = { Text(stringResource(R.string.pack_emoji)) },
-                    supportingText = { Text(stringResource(emojiHelp)) },
-                    isError = Problem.BAD_EMOJI in problems,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 Text(
                     stringResource(R.string.pack_selected, chosen.size, StickerPackList.MAX_STICKERS),
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                Text(stringResource(R.string.pack_emoji_hint), style = MaterialTheme.typography.bodySmall)
                 if (mixedLibrary) {
                     Text(stringResource(R.string.pack_mixed_rule), style = MaterialTheme.typography.bodySmall)
                 }
-                StickerGrid(library, chosen, Modifier.weight(1f))
+                StickerGrid(library, chosen, emoji, Modifier.weight(1f)) { file ->
+                    if (file.name in chosen) {
+                        emojiFor = file
+                    } else {
+                        chosen += file.name
+                        emoji[file.name] = lastEmoji
+                    }
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (pack != null) TextButton(onClick = onDelete) { Text(stringResource(R.string.pack_delete)) }
                     Box(Modifier.weight(1f))
                     TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-                    Button(onClick = { onSave(name, chosen.toList(), emoji) }, enabled = problems.isEmpty()) {
+                    Button(onClick = { onSave(name, chosen.toList(), emoji.toMap()) }, enabled = problems.isEmpty()) {
                         Text(stringResource(R.string.pack_save))
                     }
+                }
+            }
+        }
+    }
+    emojiFor?.let { file ->
+        StickerEmojiDialog(
+            file = file,
+            emoji = emoji[file.name].orEmpty(),
+            onDone = { list ->
+                emoji[file.name] = list
+                lastEmoji = list
+                emojiFor = null
+            },
+            onApplyToAll = { list ->
+                for (f in chosen) emoji[f] = list
+                lastEmoji = list
+                emojiFor = null
+            },
+            onRemove = {
+                chosen.remove(file.name)
+                emoji.remove(file.name)
+                emojiFor = null
+            },
+            onDismiss = { emojiFor = null },
+        )
+    }
+}
+
+/** One sticker's emoji (one to three, WhatsApp's limit), picked from the keyboard's emoji. */
+@Composable
+private fun StickerEmojiDialog(
+    file: File,
+    emoji: List<String>,
+    onDone: (List<String>) -> Unit,
+    onApplyToAll: (List<String>) -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val family = remember { AppEmoji.family(context) }
+    val picked = remember { mutableStateListOf<String>().apply { addAll(emoji) } }
+    val ok = StickerPackList.isEmojiList(picked)
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.size(EMOJI_THUMB_DP.dp)) { Thumb(file, Modifier.fillMaxSize()) }
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.pack_sticker_emoji), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.pack_emoji_help), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (e in picked.toList()) {
+                        Text(
+                            e,
+                            fontFamily = family,
+                            fontSize = PICKED_SP.sp,
+                            modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { picked.remove(e) }
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                    if (picked.isEmpty()) {
+                        Text(stringResource(R.string.pack_emoji_none), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                EmojiPicker(marked = picked, modifier = Modifier.weight(1f), onPick = { e ->
+                    when {
+                        e in picked -> picked.remove(e)
+
+                        picked.size < StickerPackList.MAX_EMOJI -> picked += e
+
+                        // Full: the newest pick replaces the last one.
+                        else -> picked[picked.lastIndex] = e
+                    }
+                })
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onRemove) { Text(stringResource(R.string.pack_sticker_remove)) }
+                    TextButton(onClick = { onApplyToAll(picked.toList()) }, enabled = ok) {
+                        Text(stringResource(R.string.pack_emoji_all))
+                    }
+                    Button(
+                        onClick = { onDone(picked.toList()) },
+                        enabled = ok,
+                    ) { Text(stringResource(R.string.pack_ok)) }
                 }
             }
         }
@@ -299,13 +398,21 @@ private fun PackEditor(
 }
 
 /**
- * The library, tapped to add to or drop from [chosen]. Once one kind
- * (animated or still) is chosen the other is dimmed: WhatsApp does not mix them.
+ * The library, tapped to pick a sticker or open a picked one's emoji. Once
+ * one kind (animated or still) is picked the other is dimmed: WhatsApp does
+ * not mix them.
  */
 @Composable
-private fun StickerGrid(library: List<File>, chosen: MutableList<String>, modifier: Modifier) {
+private fun StickerGrid(
+    library: List<File>,
+    chosen: List<String>,
+    emoji: Map<String, List<String>>,
+    modifier: Modifier,
+    onTap: (File) -> Unit,
+) {
     val animated = chosen.firstOrNull()?.let(StickerPackList::isAnimated)
     val full = chosen.size >= StickerPackList.MAX_STICKERS
+    val family = AppEmoji.family(LocalContext.current)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(CELL_DP.dp),
         modifier = modifier,
@@ -316,15 +423,21 @@ private fun StickerGrid(library: List<File>, chosen: MutableList<String>, modifi
             val order = chosen.indexOf(file.name)
             val isAnimated = StickerPackList.isAnimated(file.name)
             val allowed = order >= 0 || (!full && (animated == null || animated == isAnimated))
-            StickerCell(file, order, isAnimated, allowed) {
-                if (order >= 0) chosen.removeAt(order) else chosen += file.name
-            }
+            StickerCell(file, order, isAnimated, allowed, emoji[file.name]?.joinToString(""), family) { onTap(file) }
         }
     }
 }
 
 @Composable
-private fun StickerCell(file: File, order: Int, animated: Boolean, allowed: Boolean, onClick: () -> Unit) {
+private fun StickerCell(
+    file: File,
+    order: Int,
+    animated: Boolean,
+    allowed: Boolean,
+    emoji: String?,
+    family: FontFamily?,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(8.dp)
     val selected = order >= 0
     Box(
@@ -354,6 +467,19 @@ private fun StickerCell(file: File, order: Int, animated: Boolean, allowed: Bool
                     .padding(horizontal = 6.dp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        if (selected && emoji != null) {
+            Text(
+                emoji,
+                fontFamily = family,
+                modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(4.dp)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 3.dp),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
         if (animated) {
@@ -389,3 +515,6 @@ private const val CELL_DP = 88
 private const val THUMB_SAMPLE = 4
 private const val DISABLED_ALPHA = 0.3f
 private const val SELECTED_BORDER_DP = 3
+private const val EMOJI_THUMB_DP = 72
+private const val PICKED_SP = 28
+private const val ROW_EMOJI = 6

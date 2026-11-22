@@ -9,21 +9,27 @@ import java.text.BreakIterator
 
 /**
  * A named group of library stickers, the unit WhatsApp adds to its sticker
- * tray. [stickers] are file names in the library, in order; [emoji] (one to
- * three) are what WhatsApp files every sticker of the pack under. [version]
- * goes up on each change so WhatsApp fetches the pack again.
+ * tray. [stickers] are file names in the library, in order; [emoji] holds
+ * each one's emoji (one to three), which WhatsApp files the sticker under.
+ * [version] goes up on each change so WhatsApp fetches the pack again.
  */
 data class StickerPack(
     val id: String,
     val name: String,
     val stickers: List<String>,
-    val emoji: List<String>,
+    val emoji: Map<String, List<String>>,
     val version: Int,
 ) {
     val animated: Boolean get() = stickers.firstOrNull()?.let(StickerPackList::isAnimated) == true
 
     /** Tray icon file name; it changes with [version], so WhatsApp never keeps a stale one. */
     val trayFile: String get() = "tray_${id}_$version.png"
+
+    fun emojiOf(file: String): List<String> = emoji[file].orEmpty()
+
+    /** The pack's emoji, most used first, without repeats. */
+    fun allEmoji(): List<String> =
+        stickers.flatMap(::emojiOf).groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
 }
 
 /**
@@ -38,22 +44,27 @@ class StickerPackList {
     operator fun get(id: String): StickerPack? = packs.firstOrNull { it.id == id }
 
     /** Adds a pack under the new [id] (unique, never reused), or returns null when it breaks a rule. */
-    fun create(id: String, name: String, stickers: List<String>, emoji: String): StickerPack? {
+    fun create(id: String, name: String, stickers: List<String>, emoji: Map<String, List<String>>): StickerPack? {
         if (packs.size >= MAX_PACKS || this[id] != null || !ID.matches(id)) return null
-        val e = emojiOf(emoji) ?: return null
         if (problems(name, stickers, emoji).isNotEmpty()) return null
-        return StickerPack(id, name.trim(), stickers.toList(), e, 1).also { packs += it }
+        return StickerPack(id, name.trim(), stickers.toList(), emoji.filterKeys { it in stickers }, 1)
+            .also { packs += it }
     }
 
     /** Replaces the pack's contents; null when [id] is unknown or the new contents break a rule. */
-    fun update(id: String, name: String, stickers: List<String>, emoji: String): StickerPack? {
+    fun update(id: String, name: String, stickers: List<String>, emoji: Map<String, List<String>>): StickerPack? {
         val i = packs.indexOfFirst { it.id == id }
-        if (i < 0) return null
-        val e = emojiOf(emoji) ?: return null
-        if (problems(name, stickers, emoji).isNotEmpty()) return null
+        if (i < 0 || problems(name, stickers, emoji).isNotEmpty()) return null
         val old = packs[i]
-        return old.copy(name = name.trim(), stickers = stickers.toList(), emoji = e, version = old.version + 1)
-            .also { packs[i] = it }
+        val new =
+            old.copy(
+                name = name.trim(),
+                stickers = stickers.toList(),
+                emoji = emoji.filterKeys { it in stickers },
+                version = old.version + 1,
+            )
+        packs[i] = new
+        return new
     }
 
     fun remove(id: String): Boolean = packs.removeAll { it.id == id }
@@ -72,7 +83,7 @@ class StickerPackList {
             if (left.isEmpty()) {
                 it.remove()
             } else {
-                val q = p.copy(stickers = left, version = p.version + 1)
+                val q = p.copy(stickers = left, emoji = p.emoji - file, version = p.version + 1)
                 it.set(q)
                 changed += q
             }
@@ -83,13 +94,12 @@ class StickerPackList {
     fun encode(): String = Json.write(
         mapOf(
             "packs" to
-                packs.map {
+                packs.map { p ->
                     mapOf(
-                        "id" to it.id,
-                        "name" to it.name,
-                        "stickers" to it.stickers,
-                        "emoji" to it.emoji,
-                        "version" to it.version,
+                        "id" to p.id,
+                        "name" to p.name,
+                        "stickers" to p.stickers.map { mapOf("file" to it, "emoji" to p.emojiOf(it)) },
+                        "version" to p.version,
                     )
                 },
         ),
@@ -102,11 +112,18 @@ class StickerPackList {
         for (item in root.array("packs").orEmpty()) {
             val o = item.jsonObject() ?: continue
             val id = o.string("id")?.takeIf { ID.matches(it) && this[it] == null } ?: continue
-            val stickers = o.array("stickers").orEmpty().filterIsInstance<String>().filter(FILE::matches)
-            val emoji = o.array("emoji").orEmpty().filterIsInstance<String>()
-            if (stickers.isEmpty() || emoji.isEmpty() || packs.size >= MAX_PACKS) continue
+            // Before per-sticker emoji, the pack had one "emoji" list for all its stickers.
+            val packEmoji = o.array("emoji").orEmpty().filterIsInstance<String>().takeIf(::isEmojiList)
+            val emoji = LinkedHashMap<String, List<String>>()
+            for (s in o.array("stickers").orEmpty()) {
+                val so = s.jsonObject()
+                val file = (so?.string("file") ?: s as? String)?.takeIf { FILE.matches(it) && it !in emoji } ?: continue
+                val own = so?.array("emoji")?.filterIsInstance<String>()?.takeIf(::isEmojiList)
+                emoji[file] = own ?: packEmoji ?: listOf(DEFAULT_EMOJI)
+            }
+            if (emoji.isEmpty() || packs.size >= MAX_PACKS) continue
             val version = o.number("version")?.toInt()?.coerceAtLeast(1) ?: 1
-            packs += StickerPack(id, o.string("name").orEmpty(), stickers, emoji, version)
+            packs += StickerPack(id, o.string("name").orEmpty(), emoji.keys.toList(), emoji, version)
         }
     }
 
@@ -131,8 +148,11 @@ class StickerPackList {
 
         fun isAnimated(file: String): Boolean = file.startsWith(ANIMATED_PREFIX)
 
-        /** What keeps [stickers] named [name] with [emoji] from being a WhatsApp pack; empty when it can be one. */
-        fun problems(name: String, stickers: List<String>, emoji: String): Set<Problem> {
+        /**
+         * What keeps [stickers] named [name], with each sticker's [emoji],
+         * from being a WhatsApp pack; empty when it can be one.
+         */
+        fun problems(name: String, stickers: List<String>, emoji: Map<String, List<String>>): Set<Problem> {
             val out = HashSet<Problem>()
             val n = name.trim()
             if (n.isEmpty()) out += Problem.NO_NAME
@@ -140,7 +160,7 @@ class StickerPackList {
             if (stickers.size < MIN_STICKERS) out += Problem.TOO_FEW
             if (stickers.size > MAX_STICKERS) out += Problem.TOO_MANY
             if (stickers.map(::isAnimated).distinct().size > 1) out += Problem.MIXED
-            if (emojiOf(emoji) == null) out += Problem.BAD_EMOJI
+            if (stickers.any { !isEmojiList(emoji[it].orEmpty()) }) out += Problem.BAD_EMOJI
             return out
         }
 
@@ -148,7 +168,7 @@ class StickerPackList {
          * The one to three emoji in [text] ("😂 ❤️", "👍🏽,🎉"), or null when it
          * holds anything else, none, or more than three.
          */
-        fun emojiOf(text: String): List<String>? {
+        fun splitEmoji(text: String): List<String>? {
             val out = ArrayList<String>()
             val it = BreakIterator.getCharacterInstance()
             it.setText(text)
@@ -164,6 +184,10 @@ class StickerPackList {
             }
             return out.ifEmpty { null }
         }
+
+        /** One to three emoji, each a single emoji (as [splitEmoji] splits them), none twice. */
+        fun isEmojiList(list: List<String>): Boolean =
+            list.size in 1..MAX_EMOJI && list.distinct().size == list.size && list.all { splitEmoji(it) == listOf(it) }
 
         private fun isEmoji(g: String): Boolean {
             val cp = g.codePointAt(0)

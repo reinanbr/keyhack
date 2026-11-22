@@ -43,7 +43,7 @@ class StickerPackStore private constructor(context: Context) {
 
     /** Creates a pack. Blocking (draws the tray icon). Null when it breaks a rule or a file is gone. */
     @Synchronized
-    fun create(name: String, stickers: List<String>, emoji: String): StickerPack? {
+    fun create(name: String, stickers: List<String>, emoji: Map<String, List<String>>): StickerPack? {
         val l = load()
         if (!allExist(stickers)) return null
         var id = System.currentTimeMillis().toString(ID_RADIX)
@@ -53,7 +53,7 @@ class StickerPackStore private constructor(context: Context) {
 
     /** Changes a pack. Blocking (draws the tray icon). */
     @Synchronized
-    fun update(id: String, name: String, stickers: List<String>, emoji: String): StickerPack? {
+    fun update(id: String, name: String, stickers: List<String>, emoji: Map<String, List<String>>): StickerPack? {
         if (!allExist(stickers)) return null
         return load().update(id, name, stickers, emoji)?.also(::saved)
     }
@@ -78,10 +78,9 @@ class StickerPackStore private constructor(context: Context) {
         save()
     }
 
-    private fun isServable(p: StickerPack): Boolean =
-        StickerPackList.problems(p.name, p.stickers, p.emoji.joinToString(" ")).isEmpty() &&
-            allExist(p.stickers) &&
-            File(trayDir, p.trayFile).isFile
+    private fun isServable(p: StickerPack): Boolean = StickerPackList.problems(p.name, p.stickers, p.emoji).isEmpty() &&
+        allExist(p.stickers) &&
+        File(trayDir, p.trayFile).isFile
 
     private fun allExist(stickers: List<String>) = stickers.all { File(stickerDir, it).isFile }
 

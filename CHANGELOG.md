@@ -84,8 +84,9 @@ All notable changes to KeyHack are listed here. The format follows
   but GIF search works the same. The two builds share the package name:
   install one or the other.
 - WhatsApp sticker packs: in Settings → Stickers, group 3 to 30 of your
-  stickers into a pack (all still or all animated), give it a name and
-  emoji, and tap "Add to WhatsApp". The pack then appears in WhatsApp's own
+  stickers into a pack (all still or all animated), give it a name, give
+  each sticker 1 to 3 emoji from an emoji picker (with search, or "Use for
+  all"), and tap "Add to WhatsApp". The pack then appears in WhatsApp's own
   sticker tray. Up to 10 packs; changing a pack updates it in WhatsApp.
   WhatsApp reads the packs through a read-only provider that only WhatsApp
   can open (ADR 0006).

@@ -27,8 +27,8 @@ launcher activity, so ADR 0002 requires its own decision.
 ## Decision
 
 - **Packs** are user-made groups of library stickers, kept in
-  `filesDir/sticker_packs.json`: id, name, sticker file names, 1–3 emoji, and a
-  version. The settings screen creates and edits them.
+  `filesDir/sticker_packs.json`: id, name, sticker file names, each sticker's
+  1–3 emoji, and a version. The settings screen creates and edits them.
   - Each pack's tray icon is its first sticker drawn at 96×96 PNG, in
     `filesDir/sticker_trays`.
   - Ids come from the clock and are never reused, so WhatsApp never confuses
