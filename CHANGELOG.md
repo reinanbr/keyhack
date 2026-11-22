@@ -7,6 +7,8 @@ All notable changes to KeyHack are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
 ### Added
 
 - Backup: Settings → Backup exports your settings, learned words, snippets
@@ -209,6 +211,7 @@ First public preview.
 - No analytics, crash reporting or telemetry; no cloud backup; release builds
   strip logging.
 
-[Unreleased]: https://github.com/reinanbr/keyhack/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/reinanbr/keyhack/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/reinanbr/keyhack/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/reinanbr/keyhack/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/reinanbr/keyhack/releases/tag/v0.1.0
