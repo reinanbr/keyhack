@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Only to tell whether WhatsApp is installed and whether it has a pack (ADR 0006). -->
+  <queries>
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
+  </queries>
+
+  <application>
+    <!--
+      WhatsApp's sticker app contract: WhatsApp reads the packs the user made
+      from here. Exported, read-only, readable only with WhatsApp's permission
+      and, in code, only by a WhatsApp package (ADR 0006).
+    -->
+    <provider
+      android:name="com.reinanbr.keyhack.stickers.WhatsAppStickerProvider"
+      android:authorities="${applicationId}.stickers"
+      android:exported="true"
+      android:permission="com.whatsapp.sticker.READ" />
+  </application>
+</manifest>

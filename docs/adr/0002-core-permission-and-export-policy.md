@@ -51,8 +51,8 @@ as dynamic code loading, which is banned separately (lint and review).
 
 - Adding a permission or exported component means editing the allowlist in
   `app/build.gradle.kts`, which by project rule requires a new ADR.
-- M5 must add the WhatsApp sticker provider and share-target activity to the
-  allowlist.
+- The WhatsApp sticker provider was added to the allowlist in ADR 0006,
+  guarded by `com.whatsapp.sticker.READ`.
 - Update (ADR 0004): the companion app was dropped; the single app's
   allowlist gained `INTERNET`, and network code is confined to `:media`
   (moved to `:net` on 2026-11-21; the offline flavor allows only `VIBRATE`).

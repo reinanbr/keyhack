@@ -31,6 +31,35 @@
     <item quantity="other">%1$d stickers added</item>
   </plurals>
   <string name="stickers_imported_some_failed">Stickers added: %1$d. Images that could not be read: %2$d.</string>
+  <string name="packs_title">WhatsApp sticker packs</string>
+  <string name="packs_body">Group 3 to 30 stickers into a pack and add it to WhatsApp\'s own sticker tray. A pack holds only still or only animated stickers.</string>
+  <string name="packs_no_whatsapp">Install WhatsApp to add packs to it.</string>
+  <string name="pack_new">New pack</string>
+  <string name="pack_edit">Edit pack</string>
+  <string name="pack_add">Add to WhatsApp</string>
+  <string name="pack_add_business">Add to WhatsApp Business</string>
+  <string name="pack_in_whatsapp">✓ In WhatsApp</string>
+  <plurals name="pack_count">
+    <item quantity="one">%1$d sticker</item>
+    <item quantity="other">%1$d stickers</item>
+  </plurals>
+  <string name="pack_animated">animated</string>
+  <string name="pack_invalid">Needs 3 to 30 stickers to go to WhatsApp.</string>
+  <string name="pack_added">Pack added to WhatsApp</string>
+  <string name="pack_refused">WhatsApp did not accept the pack: %1$s</string>
+  <string name="pack_save_failed">Could not save the pack.</string>
+  <string name="pack_whatsapp_missing">WhatsApp not found.</string>
+  <string name="pack_limit">WhatsApp takes up to 10 packs per app.</string>
+  <string name="pack_need_stickers">Import at least 3 stickers to make a pack.</string>
+  <string name="pack_default_name">My stickers</string>
+  <string name="pack_name">Pack name</string>
+  <string name="pack_emoji">Emoji (1 to 3)</string>
+  <string name="pack_emoji_help">WhatsApp files the stickers under these emoji.</string>
+  <string name="pack_bad_emoji">Use 1 to 3 emoji, like 😂 ❤️.</string>
+  <string name="pack_selected">Chosen: %1$d/%2$d · the first one is the pack icon</string>
+  <string name="pack_mixed_rule">WhatsApp does not mix animated and still stickers in one pack.</string>
+  <string name="pack_save">Save</string>
+  <string name="pack_delete">Delete pack</string>
   <string name="section_privacy">Privacy</string>
 
   <string name="pref_layout">Letter layout</string>

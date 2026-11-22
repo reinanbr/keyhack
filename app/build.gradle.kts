@@ -46,10 +46,15 @@ manifestPolicy {
         setOf(
             "com.reinanbr.keyhack.ime.KeyHackImeService",
             "com.reinanbr.keyhack.MainActivity",
+            // WhatsApp reads the user's sticker packs from it (ADR 0006).
+            "com.reinanbr.keyhack.stickers.WhatsAppStickerProvider",
         ),
     )
     requiredPermissions.set(
-        mapOf("com.reinanbr.keyhack.ime.KeyHackImeService" to "android.permission.BIND_INPUT_METHOD"),
+        mapOf(
+            "com.reinanbr.keyhack.ime.KeyHackImeService" to "android.permission.BIND_INPUT_METHOD",
+            "com.reinanbr.keyhack.stickers.WhatsAppStickerProvider" to "com.whatsapp.sticker.READ",
+        ),
     )
 }
 

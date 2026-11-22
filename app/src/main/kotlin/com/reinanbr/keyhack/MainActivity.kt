@@ -135,12 +135,16 @@ class MainActivity : ComponentActivity() {
                 SettingsScreen(
                     status = status,
                     settings = settings,
+                    stickers = stickers,
                     stickerCount = stickerCount,
                     snippetRequest = snippetRequest,
                     onImportStickers = ::openStickerPicker,
                     onDeleteStickers = {
-                        stickers.deleteAll()
-                        stickerCount = 0
+                        // Also drops the packs: blocking, so off the main thread.
+                        Thread({
+                            stickers.deleteAll()
+                            runOnUiThread { stickerCount = stickers.list().size }
+                        }, "keyhack-sticker-delete").start()
                     },
                     onEnable = { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) },
                     onSelect = { getSystemService(InputMethodManager::class.java).showInputMethodPicker() },
@@ -227,6 +231,7 @@ private class Prefs(val settings: KeyHackSettings) {
 private fun SettingsScreen(
     status: ImeStatus,
     settings: KeyHackSettings,
+    stickers: StickerStore,
     stickerCount: Int,
     snippetRequest: Int,
     onImportStickers: () -> Unit,
@@ -287,7 +292,9 @@ private fun SettingsScreen(
             SnippetsSection(Modifier.onGloballyPositioned { snippetsY = it.positionInParent().y.roundToInt() })
             PcSection(p)
             GifSection(p)
-            StickerSection(stickerCount, onImportStickers, onDeleteStickers)
+            StickerSection(stickerCount, onImportStickers, onDeleteStickers) {
+                StickerPacksSection(stickers, stickerCount)
+            }
             Section(stringResource(R.string.section_privacy)) {
                 Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium)
             }
@@ -554,7 +561,7 @@ private fun PcSection(p: Prefs) {
 }
 
 @Composable
-private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> Unit) {
+private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> Unit, packs: @Composable () -> Unit) {
     Section(stringResource(R.string.section_stickers)) {
         Text(stringResource(R.string.stickers_body), style = MaterialTheme.typography.bodyMedium)
         Text(
@@ -565,6 +572,8 @@ private fun StickerSection(count: Int, onImport: () -> Unit, onDeleteAll: () -> 
             Button(onClick = onImport) { Text(stringResource(R.string.stickers_import)) }
             if (count > 0) OutlinedButton(onClick = onDeleteAll) { Text(stringResource(R.string.stickers_delete_all)) }
         }
+        HorizontalDivider()
+        packs()
     }
 }
 

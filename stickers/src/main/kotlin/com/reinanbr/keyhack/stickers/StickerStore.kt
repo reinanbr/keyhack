@@ -31,19 +31,23 @@ import java.security.MessageDigest
  */
 class StickerStore(context: Context) {
     private val app = context.applicationContext
-    private val dir = File(app.filesDir, "stickers")
+    private val dir = File(app.filesDir, DIR)
     private val emojiDir = File(app.cacheDir, "stickers")
 
     /** Imported stickers, newest first. */
     fun list(): List<File> =
         dir.listFiles { f -> f.isFile && f.name.endsWith(EXT) }.orEmpty().sortedByDescending { it.lastModified() }
 
+    /** Deletes [file] from the library and from the packs that hold it. Blocking. */
     fun delete(file: File) {
-        if (file.parentFile?.canonicalPath == dir.canonicalPath) file.delete()
+        if (file.parentFile?.canonicalPath == dir.canonicalPath && file.delete()) {
+            StickerPackStore.get(app).removeSticker(file.name)
+        }
     }
 
+    /** Deletes the library; packs go with it. Blocking. */
     fun deleteAll() {
-        list().forEach { it.delete() }
+        list().forEach(::delete)
     }
 
     /** Imports one image from [uri] (photo picker). Blocking: call off the main thread. */
@@ -52,7 +56,7 @@ class StickerStore(context: Context) {
         dir.mkdirs()
         val animated = if (isGif(bytes)) animatedSticker(bytes) else null
         if (animated != null) {
-            val out = File(dir, "a_${System.currentTimeMillis()}_${(bytes.contentHashCode().toLong() and MASK)}$EXT")
+            val out = File(dir, newName(StickerPackList.ANIMATED_PREFIX, bytes))
             writeAtomic(out, animated)
             return@runCatching out
         }
@@ -64,7 +68,7 @@ class StickerStore(context: Context) {
             }
         val sticker = toCanvas(bitmap)
         bitmap.recycle()
-        val out = File(dir, "s_${System.currentTimeMillis()}_${(bytes.contentHashCode().toLong() and MASK)}$EXT")
+        val out = File(dir, newName(StickerPackList.STILL_PREFIX, bytes))
         writeAtomic(out, encode(sticker))
         sticker.recycle()
         out
@@ -119,6 +123,10 @@ class StickerStore(context: Context) {
             out.toByteArray()
         }
     }
+
+    /** "a_<time>_<hash>.webp": the pattern StickerPackList accepts. */
+    private fun newName(prefix: String, bytes: ByteArray) =
+        "$prefix${System.currentTimeMillis()}_${bytes.contentHashCode().toLong() and MASK}$EXT"
 
     private fun isGif(b: ByteArray) = b.size > GIF_MAGIC.size && GIF_MAGIC.indices.all { b[it] == GIF_MAGIC[it] }
 
@@ -221,6 +229,9 @@ class StickerStore(context: Context) {
         /** WhatsApp's sticker MIME type; editors that take stickers list it in contentMimeTypes. */
         const val MIME_WHATSAPP = "image/webp.wasticker"
         const val MIME_WEBP = "image/webp"
+
+        /** The library's directory under filesDir. */
+        const val DIR = "stickers"
         private const val EXT = ".webp"
         private const val MAX_INPUT_BYTES = 20 * 1024 * 1024
         private const val BUFFER = 64 * 1024

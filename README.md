@@ -72,7 +72,7 @@ install; use it only for testing.
   the bundled Noto Color Emoji font (Android 13+); emoji with categories, recents, skin tones and
   EN/PT search; kaomoji; GIF search (results update as you type) with your own Giphy API key;
   stickers: import your images (GIFs become animated stickers) or send any
-  emoji as a WhatsApp sticker.
+  emoji as a WhatsApp sticker, and add your own sticker packs to WhatsApp.
 - **Clipboard history** (opt-in, encrypted, expiring, with pinned items) and
   one-tap paste of what you just copied.
 - **Snippets** (encrypted saved texts with typed shortcuts) and a **command
@@ -123,7 +123,7 @@ your IP address.
 | # | Adversary or risk | Main mitigations |
 |---|---|---|
 | 1 | The keyboard itself as a keylogger | Network code confined to `:net` by a build rule, GIF search only, absent from the offline build; learning stores word/pair counts only, never sentences; no logging of typed text |
-| 2 | Malicious apps on the device | Minimal exported components (allowlisted at build time); non-exported FileProvider for GIFs; read-only, traversal-safe sticker provider |
+| 2 | Malicious apps on the device | Minimal exported components (allowlisted at build time); non-exported FileProvider for GIFs; read-only sticker pack provider that only WhatsApp can read (ADR 0006) |
 | 3 | Malicious files (layouts, themes, snippets, dictionaries, media) | Size caps, magic-byte MIME sniffing, strict schemas, copy-then-process, memory-safe decoders, fuzzed parsers |
 | 4 | Network attackers | HTTPS only, no cleartext, no user CAs, provider host allowlist; responses size-capped and parsed as untrusted |
 | 5 | Compromised dependencies or CI | Gradle dependency verification (checksums + PGP), SHA-pinned Actions, least-privilege workflows, reproducible builds, SBOM |
@@ -206,7 +206,7 @@ the diff:
 | M2 | PC mode: full layout, sticky modifiers, dev row, per-app PC mode | ✅ |
 | M3 | Dictionaries, autocorrect, prediction, count-only learning, incognito | ✅ |
 | M4 | Emoji ✅, opt-in encrypted clipboard history ✅ | ✅ |
-| M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅; WhatsApp sticker packs | partial |
+| M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅, WhatsApp sticker packs ✅ | ✅ |
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
 | M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |

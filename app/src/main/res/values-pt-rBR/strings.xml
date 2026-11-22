@@ -32,6 +32,36 @@
     <item quantity="other">%1$d figurinhas adicionadas</item>
   </plurals>
   <string name="stickers_imported_some_failed">Figurinhas adicionadas: %1$d. Imagens que não puderam ser lidas: %2$d.</string>
+  <string name="packs_title">Pacotes para o WhatsApp</string>
+  <string name="packs_body">Junte de 3 a 30 figurinhas num pacote e coloque-o na aba de figurinhas do próprio WhatsApp. Um pacote tem só figurinhas paradas ou só animadas.</string>
+  <string name="packs_no_whatsapp">Instale o WhatsApp para adicionar pacotes.</string>
+  <string name="pack_new">Novo pacote</string>
+  <string name="pack_edit">Editar pacote</string>
+  <string name="pack_add">Adicionar ao WhatsApp</string>
+  <string name="pack_add_business">Adicionar ao WhatsApp Business</string>
+  <string name="pack_in_whatsapp">✓ No WhatsApp</string>
+  <plurals name="pack_count">
+    <item quantity="one">%1$d figurinha</item>
+    <item quantity="many">%1$d figurinhas</item>
+    <item quantity="other">%1$d figurinhas</item>
+  </plurals>
+  <string name="pack_animated">animadas</string>
+  <string name="pack_invalid">Precisa de 3 a 30 figurinhas para ir ao WhatsApp.</string>
+  <string name="pack_added">Pacote adicionado ao WhatsApp</string>
+  <string name="pack_refused">O WhatsApp não aceitou o pacote: %1$s</string>
+  <string name="pack_save_failed">Não foi possível salvar o pacote.</string>
+  <string name="pack_whatsapp_missing">WhatsApp não encontrado.</string>
+  <string name="pack_limit">O WhatsApp aceita até 10 pacotes por app.</string>
+  <string name="pack_need_stickers">Importe pelo menos 3 figurinhas para montar um pacote.</string>
+  <string name="pack_default_name">Minhas figurinhas</string>
+  <string name="pack_name">Nome do pacote</string>
+  <string name="pack_emoji">Emoji (1 a 3)</string>
+  <string name="pack_emoji_help">O WhatsApp guarda as figurinhas sob estes emoji.</string>
+  <string name="pack_bad_emoji">Use de 1 a 3 emoji, como 😂 ❤️.</string>
+  <string name="pack_selected">Escolhidas: %1$d/%2$d · a primeira vira o ícone do pacote</string>
+  <string name="pack_mixed_rule">O WhatsApp não mistura figurinhas animadas e paradas no mesmo pacote.</string>
+  <string name="pack_save">Salvar</string>
+  <string name="pack_delete">Excluir pacote</string>
   <string name="section_privacy">Privacidade</string>
 
   <string name="pref_layout">Layout das letras</string>

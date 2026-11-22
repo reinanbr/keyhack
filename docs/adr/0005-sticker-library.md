@@ -47,5 +47,4 @@ and a parser for untrusted files (any image format the user picks).
 ## Consequences
 
 - WhatsApp sticker packs (the `ContentProvider` that
-  WhatsApp's "Add to WhatsApp" flow needs) are not covered; packs would add an
-  exported provider and need their own ADR.
+  WhatsApp's "Add to WhatsApp" flow needs) are not covered here; see ADR 0006.
