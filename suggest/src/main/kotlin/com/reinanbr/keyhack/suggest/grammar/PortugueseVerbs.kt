@@ -3,7 +3,9 @@ package com.reinanbr.keyhack.suggest.grammar
 /**
  * Portuguese verb forms for the tenses people write in chats, enough to tell
  * which person a verb is in and to produce the form a subject needs:
- * "nós vai" -> "vamos", "eles fala" -> "falam", "a gente fomos" -> "foi".
+ * "nós vai" -> "vamos", "eles fala" -> "falam", "a gente fomos" -> "foi",
+ * and in the subjunctive "eles não me envie" -> "enviem", "se eles quiser"
+ * -> "quiserem", "se nós soubesse" -> "soubéssemos".
  *
  * Persons are indexed [S1] eu, [S2] tu, [S3] ele/você/a gente, [P1] nós,
  * [P3] eles/vocês. Regular -ar/-er/-ir verbs are generated (with the usual
@@ -11,7 +13,16 @@ package com.reinanbr.keyhack.suggest.grammar
  * their compounds come from tables.
  */
 internal object PortugueseVerbs {
-    enum class Tense { PRESENT, PRETERITE, IMPERFECT, FUTURE, CONDITIONAL }
+    enum class Tense(val subjunctive: Boolean = false) {
+        PRESENT,
+        PRETERITE,
+        IMPERFECT,
+        FUTURE,
+        CONDITIONAL,
+        PRESENT_SUBJUNCTIVE(true),
+        IMPERFECT_SUBJUNCTIVE(true),
+        FUTURE_SUBJUNCTIVE(true),
+    }
 
     const val S1 = 0
     const val S2 = 1
@@ -46,7 +57,10 @@ internal object PortugueseVerbs {
 
     private fun t(vararg forms: String) = forms.toList()
 
-    /** Irregular tenses; tenses not listed are regular. */
+    /**
+     * Irregular tenses; tenses not listed are regular. The subjunctive is
+     * derived (see [subjunctives]) except for the few verbs listed here.
+     */
     @Suppress("LongMethod") // A table.
     private val IRREGULAR: Map<String, Map<Tense, List<String>>> =
         mapOf(
@@ -54,15 +68,18 @@ internal object PortugueseVerbs {
                 Tense.PRESENT to t("sou", "és", "é", "somos", "são"),
                 Tense.PRETERITE to t("fui", "foste", "foi", "fomos", "foram"),
                 Tense.IMPERFECT to t("era", "eras", "era", "éramos", "eram"),
+                Tense.PRESENT_SUBJUNCTIVE to t("seja", "sejas", "seja", "sejamos", "sejam"),
             ),
             "estar" to mapOf(
                 Tense.PRESENT to t("estou", "estás", "está", "estamos", "estão"),
                 Tense.PRETERITE to t("estive", "estiveste", "esteve", "estivemos", "estiveram"),
+                Tense.PRESENT_SUBJUNCTIVE to t("esteja", "estejas", "esteja", "estejamos", "estejam"),
             ),
             "ir" to mapOf(
                 Tense.PRESENT to t("vou", "vais", "vai", "vamos", "vão"),
                 Tense.PRETERITE to t("fui", "foste", "foi", "fomos", "foram"),
                 Tense.IMPERFECT to t("ia", "ias", "ia", "íamos", "iam"),
+                Tense.PRESENT_SUBJUNCTIVE to t("vá", "vás", "vá", "vamos", "vão"),
             ),
             "ter" to mapOf(
                 Tense.PRESENT to t("tenho", "tens", "tem", "temos", "têm"),
@@ -72,6 +89,7 @@ internal object PortugueseVerbs {
             "haver" to mapOf(
                 Tense.PRESENT to t("hei", "hás", "há", "havemos", "hão"),
                 Tense.PRETERITE to t("houve", "houveste", "houve", "houvemos", "houveram"),
+                Tense.PRESENT_SUBJUNCTIVE to t("haja", "hajas", "haja", "hajamos", "hajam"),
             ),
             "fazer" to mapOf(
                 Tense.PRESENT to t("faço", "fazes", "faz", "fazemos", "fazem"),
@@ -86,10 +104,12 @@ internal object PortugueseVerbs {
             "querer" to mapOf(
                 Tense.PRESENT to t("quero", "queres", "quer", "queremos", "querem"),
                 Tense.PRETERITE to t("quis", "quiseste", "quis", "quisemos", "quiseram"),
+                Tense.PRESENT_SUBJUNCTIVE to t("queira", "queiras", "queira", "queiramos", "queiram"),
             ),
             "saber" to mapOf(
                 Tense.PRESENT to t("sei", "sabes", "sabe", "sabemos", "sabem"),
                 Tense.PRETERITE to t("soube", "soubeste", "soube", "soubemos", "souberam"),
+                Tense.PRESENT_SUBJUNCTIVE to t("saiba", "saibas", "saiba", "saibamos", "saibam"),
             ),
             "dizer" to mapOf(
                 Tense.PRESENT to t("digo", "dizes", "diz", "dizemos", "dizem"),
@@ -115,6 +135,7 @@ internal object PortugueseVerbs {
             "dar" to mapOf(
                 Tense.PRESENT to t("dou", "dás", "dá", "damos", "dão"),
                 Tense.PRETERITE to t("dei", "deste", "deu", "demos", "deram"),
+                Tense.PRESENT_SUBJUNCTIVE to t("dê", "dês", "dê", "demos", "deem"),
             ),
             "pôr" to mapOf(
                 Tense.PRESENT to t("ponho", "pões", "põe", "pomos", "põem"),
@@ -181,13 +202,26 @@ internal object PortugueseVerbs {
         val index = HashMap<String, MutableList<Parse>>()
         for (lemma in IRREGULAR.keys + COMPOUND_LEMMAS.keys) {
             for ((tense, forms) in forms(lemma)) {
-                forms.forEachIndexed { person, f -> index.getOrPut(f) { ArrayList() } += Parse(lemma, tense, person) }
+                forms.forEachIndexed { person, f ->
+                    if (readsAsInfinitive(lemma, tense, f)) return@forEachIndexed
+                    index.getOrPut(f) { ArrayList() } += Parse(lemma, tense, person)
+                }
             }
         }
         index
     }
 
-    fun isIrregularForm(word: String): Boolean = word in IRREGULAR_INDEX
+    /**
+     * The future subjunctive of regular verbs is spelled like the infinitive
+     * ("se eu falar"), and "vir" is both ver's ("se eu vir") and an infinitive.
+     * Such words are read as infinitives: "eles falar" is left alone, and
+     * "falar" is never swapped for "falarmos" in suggestions after "nós".
+     */
+    private fun readsAsInfinitive(lemma: String, tense: Tense, form: String): Boolean =
+        tense == Tense.FUTURE_SUBJUNCTIVE && (form == lemma || form in IRREGULAR || form in COMPOUND_LEMMAS)
+
+    /** An irregular indicative form ("tem", "fiz"). Subjunctive ones are often nouns too ("peça", "vista"). */
+    fun isIrregularForm(word: String): Boolean = IRREGULAR_INDEX[word]?.any { !it.tense.subjunctive } == true
 
     fun isIrregular(lemma: String): Boolean = lemma in IRREGULAR || lemma in COMPOUND_LEMMAS
 
@@ -209,7 +243,52 @@ internal object PortugueseVerbs {
             out[Tense.CONDITIONAL] = CONDITIONAL.map { lemma + it }
         }
         IRREGULAR[lemma]?.let { out.putAll(it) }
+        for ((tense, list) in subjunctives(lemma, out)) out.putIfAbsent(tense, list)
         return out
+    }
+
+    /**
+     * The subjunctive, built from the indicative the way grammars teach it:
+     * the present from "eu" in the present ("faço" -> "faça"; for -ar verbs,
+     * the preterite keeps the spelling: "fiquei" -> "fique"), the imperfect
+     * and future from "eles" in the preterite ("fizeram" -> "fizesse",
+     * "fizer").
+     */
+    private fun subjunctives(lemma: String, ind: Map<Tense, List<String>>): Map<Tense, List<String>> {
+        val out = LinkedHashMap<Tense, List<String>>()
+        presentSubjunctive(lemma, ind)?.let { out[Tense.PRESENT_SUBJUNCTIVE] = it }
+        val they = ind[Tense.PRETERITE]?.getOrNull(P3)?.takeIf { it.endsWith("ram") } ?: return out
+        // "saíram" -> "saísse", "saíres", but "sair", "sairmos".
+        val base = they.dropLast(RAM)
+        val plain = if (base.endsWith("í")) base.dropLast(1) + "i" else base
+        val strong = IRREGULAR[lemma]?.containsKey(Tense.PRETERITE) == true
+        out[Tense.IMPERFECT_SUBJUNCTIVE] =
+            t(base + "sse", base + "sses", base + "sse", stressLast(base, strong) + "ssemos", base + "ssem")
+        out[Tense.FUTURE_SUBJUNCTIVE] = t(plain + "r", base + "res", plain + "r", plain + "rmos", base + "rem")
+        return out
+    }
+
+    private fun presentSubjunctive(lemma: String, ind: Map<Tense, List<String>>): List<String>? {
+        val i = ind[Tense.PRESENT]?.getOrNull(S1)?.takeIf { it.endsWith("o") } ?: return null
+        val stem = i.dropLast(1)
+        if (!lemma.endsWith("ar")) return t(stem + "a", stem + "as", stem + "a", stem + "amos", stem + "am")
+        // "fiquei" -> "fique"; but "passeio" -> "passeie" while "nós passeemos".
+        val preterite = ind[Tense.PRETERITE]?.getOrNull(S1)?.removeSuffix("ei") ?: return null
+        val s = if (i.endsWith("eio")) stem else preterite
+        return t(s + "e", s + "es", s + "e", preterite + "emos", s + "em")
+    }
+
+    /** "fala" -> "falá" (falássemos), "come" -> "comê", "fize" -> "fizé", "parti" -> "partí", "fo" -> "fô". */
+    private fun stressLast(base: String, strong: Boolean): String {
+        val accented =
+            when (base.lastOrNull()) {
+                'a' -> 'á'
+                'e' -> if (strong) 'é' else 'ê'
+                'i' -> 'í'
+                'o' -> 'ô'
+                else -> return base
+            }
+        return base.dropLast(1) + accented
     }
 
     /** Verbs in -air (sair), -uir (incluir) and -ear (passear) follow their own patterns. */
@@ -267,7 +346,9 @@ internal object PortugueseVerbs {
             for (lemma in candidateLemmas(stem)) {
                 if (!tried.add(lemma) || isIrregular(lemma) || !isWord(lemma)) continue
                 for ((tense, forms) in forms(lemma)) {
-                    forms.forEachIndexed { person, f -> if (f == word) found += Parse(lemma, tense, person) }
+                    forms.forEachIndexed { person, f ->
+                        if (f == word && !readsAsInfinitive(lemma, tense, f)) found += Parse(lemma, tense, person)
+                    }
                 }
             }
         }
@@ -296,7 +377,9 @@ internal object PortugueseVerbs {
         return out
     }
 
-    private const val MAX_ENDING = 6
+    /** The longest ending: "ássemos" (falássemos). */
+    private const val MAX_ENDING = 7
+    private const val RAM = 3
 
     /**
      * Regular verbs with a one-letter stem do not exist (the short ones, "ir",

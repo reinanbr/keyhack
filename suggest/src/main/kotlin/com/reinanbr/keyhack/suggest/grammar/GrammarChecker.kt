@@ -102,7 +102,9 @@ class GrammarChecker(private val languages: List<LanguageGrammar>) {
     private fun verbAgreement(lexicon: Lexicon, body: String, tokens: List<Token>): Match? {
         val verb = tokens.last()
         val (subjectStart, person) = Agreement.subjectBefore(tokens.map { it.key }, tokens.lastIndex) ?: return null
-        val fit = Agreement(lexicon).fit(verb.key, person, strict = false) as? Agreement.Fit.Becomes ?: return null
+        val fit =
+            Agreement(lexicon).fit(verb.key, person, strict = false, subjunctive = true) as? Agreement.Fit.Becomes
+                ?: return null
         val prefix = body.substring(tokens[subjectStart].start, verb.start)
         return Match(subjectStart, prefix + SuggestionEngine.matchCase(verb.text, fit.form))
     }

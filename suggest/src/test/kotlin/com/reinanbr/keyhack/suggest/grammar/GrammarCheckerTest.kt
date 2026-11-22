@@ -32,6 +32,22 @@ class GrammarCheckerTest {
     }
 
     @Test
+    fun portugueseSubjunctiveAgreement() {
+        assertEquals("eles não me envie -> eles não me enviem", fix("pedi que eles não me envie "))
+        assertEquals("eles quiser -> eles quiserem", fix("se eles quiser "))
+        assertEquals("nós soubesse -> nós soubéssemos", fix("se nós soubesse "))
+        assertEquals("vocês faça -> vocês façam", fix("tomara que vocês faça "))
+        assertEquals("eles for -> eles forem", fix("quando eles for "))
+        for (ok in listOf(
+            "que eles enviem ", "se eles quiserem ", "se nós soubéssemos ", "que eu fale ", "se eu for ",
+            "quando eles saírem ", "que nós passeemos ", "eles falar ", "que você seja ", "que eles deem ",
+            "se vocês virem ", "ele sente ", "eu sento ", "ele vende ", "eu leve ", "eu vim ", "ele fala ",
+        )) {
+            assertNull(fix(ok), ok)
+        }
+    }
+
+    @Test
     fun correctAgreementIsLeftAlone() {
         for (ok in listOf(
             "nós vamos ", "eles falam ", "a gente vai ", "eu te amo ", "tu vai ", "tu vais ", "ele disse ",

@@ -7,6 +7,14 @@ All notable changes to KeyHack are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Grammar check: subject-verb agreement now covers the Portuguese
+  subjunctive. "eles não me envie" becomes "enviem", "se eles quiser"
+  becomes "quiserem" and "se nós soubesse" becomes "soubéssemos".
+  Subjunctive forms are only used by the ✓ grammar chip, never offered as
+  word suggestions, since many of them are also nouns ("peça", "vista").
+
 ## [0.3.0] - 2026-11-22
 
 ### Added

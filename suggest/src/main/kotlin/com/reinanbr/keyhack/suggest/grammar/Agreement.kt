@@ -35,16 +35,23 @@ internal class Agreement(private val lexicon: Lexicon) {
     /**
      * [word] (lowercase) after a subject in [person]. [strict] also fixes
      * "é" after "eu"/"tu"/"você"; the checker leaves "eu é que sei" alone.
+     *
+     * [subjunctive] also reads subjunctive forms ("eles envie" -> "enviem").
+     * The checker does; suggestions do not, since a completion like "for"
+     * after "nós fo" must not turn into "formos" ahead of "fomos".
      */
-    fun fit(word: String, person: Int, strict: Boolean = true): Fit {
+    fun fit(word: String, person: Int, strict: Boolean = true, subjunctive: Boolean = false): Fit {
         if (word in NOT_VERBS || (!strict && word == "é" && person != Verbs.P1 && person != Verbs.P3)) {
             return Fit.NotVerb
         }
-        val parses = Verbs.parse(word) { lexicon.freq(it) > 0 }
-        if (parses.isEmpty()) return Fit.NotVerb
+        val all = Verbs.parse(word) { lexicon.freq(it) > 0 }.filter { subjunctive || !it.tense.subjunctive }
+        if (all.isEmpty()) return Fit.NotVerb
+        // A form of two verbs is read as the commoner one: "fala" is falar's, not falir's subjunctive.
+        val lemma = all.maxBy { lexicon.freq(it.lemma) }.lemma
+        val parses = all.filter { it.lemma == lemma }
         if (parses.any { accepts(person, it.person) }) return Fit.Agrees
-        val best = parses.maxBy { lexicon.freq(it.lemma) }
-        val form = Verbs.forms(best.lemma)[best.tense]?.getOrNull(person)?.takeIf { lexicon.freq(it) >= 0 }
+        val best = parses.first()
+        val form = Verbs.forms(lemma)[best.tense]?.getOrNull(person)?.takeIf { lexicon.freq(it) >= 0 }
         return if (form == null) Fit.Wrong else Fit.Becomes(form)
     }
 

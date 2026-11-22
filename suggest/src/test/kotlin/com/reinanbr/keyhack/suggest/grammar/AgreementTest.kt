@@ -42,6 +42,22 @@ class AgreementTest {
     }
 
     @Test
+    fun fitsSubjunctives() {
+        fun fit(w: String, person: Int) = agreement.fit(w, person, subjunctive = true)
+        assertEquals(Agreement.Fit.Becomes("enviem"), fit("envie", Verbs.P3))
+        assertEquals(Agreement.Fit.Becomes("quisermos"), fit("quiser", Verbs.P1))
+        assertEquals(Agreement.Fit.Becomes("soubessem"), fit("soubesse", Verbs.P3))
+        assertEquals(Agreement.Fit.Becomes("façam"), fit("faça", Verbs.P3))
+        assertEquals(Agreement.Fit.Agrees, fit("fale", Verbs.S1))
+        assertEquals(Agreement.Fit.Agrees, fit("soubéssemos", Verbs.P1))
+        // "fala" is falar's, not the subjunctive of falir; infinitives are not read as subjunctives.
+        assertEquals(Agreement.Fit.Becomes("falo"), fit("fala", Verbs.S1))
+        assertEquals(Agreement.Fit.NotVerb, fit("falar", Verbs.P3))
+        // Suggestions leave the subjunctive out: "for" after "nós" stays, "fomos" is not pushed down.
+        assertEquals(Agreement.Fit.NotVerb, agreement.fit("for", Verbs.P1))
+    }
+
+    @Test
     fun cliticsAndShortWordsAreNotVerbs() {
         for (w in listOf("se", "me", "te", "to", "não", "muito", "para", "como", "that")) {
             assertEquals(Agreement.Fit.NotVerb, agreement.fit(w, Verbs.P3), w)
