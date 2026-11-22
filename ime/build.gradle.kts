@@ -15,5 +15,6 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":theme"))
     implementation(project(":security"))
+    implementation(project(":clipboard"))
     implementation(libs.androidx.core.ktx)
 }

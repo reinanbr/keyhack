@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.reinanbr.keyhack.clipboard.ClipboardStore
 import com.reinanbr.keyhack.data.KeyHackSettings
 import com.reinanbr.keyhack.stickers.StickerStore
 import java.io.File
@@ -131,6 +132,10 @@ class MainActivity : ComponentActivity() {
                     },
                     onEnable = { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) },
                     onSelect = { getSystemService(InputMethodManager::class.java).showInputMethodPicker() },
+                    onDeleteClipboard = {
+                        ClipboardStore.get(this).wipe()
+                        Toast.makeText(this, R.string.clipboard_deleted, Toast.LENGTH_SHORT).show()
+                    },
                     onClearLearning = {
                         File(noBackupFilesDir, "learned.tsv").delete()
                         settings.edit { putLong(LEARNING_CLEAR, System.currentTimeMillis()) }
@@ -213,6 +218,7 @@ private fun SettingsScreen(
     onEnable: () -> Unit,
     onSelect: () -> Unit,
     onClearLearning: () -> Unit,
+    onDeleteClipboard: () -> Unit,
 ) {
     val p = remember { Prefs(settings) }
     // The keyboard changes prefs too (the DEV button): keep the screen in sync.
@@ -256,6 +262,7 @@ private fun SettingsScreen(
             }
             KeyboardSection(p)
             TypingSection(p, onClearLearning)
+            ClipboardSection(p, onDeleteClipboard)
             PcSection(p)
             GifSection(p)
             StickerSection(stickerCount, onImportStickers, onDeleteStickers)
@@ -416,6 +423,11 @@ private fun TypingSection(p: Prefs, onClearLearning: () -> Unit) {
             p.set { putBoolean(K.AUTOCORRECT, it) }
         }
         SwitchRow(
+            stringResource(R.string.pref_grammar),
+            stringResource(R.string.pref_grammar_summary),
+            p.bool(K.GRAMMAR, true),
+        ) { p.set { putBoolean(K.GRAMMAR, it) } }
+        SwitchRow(
             stringResource(R.string.pref_auto_caps),
             null,
             p.bool(K.AUTO_CAPS, true),
@@ -447,6 +459,33 @@ private fun TypingSection(p: Prefs, onClearLearning: () -> Unit) {
             }
         }
         OutlinedButton(onClick = onClearLearning) { Text(stringResource(R.string.pref_clear_learning)) }
+    }
+}
+
+@Composable
+private fun ClipboardSection(p: Prefs, onDelete: () -> Unit) {
+    Section(stringResource(R.string.section_clipboard)) {
+        val on = p.bool(K.CLIPBOARD_HISTORY, false)
+        SwitchRow(
+            stringResource(R.string.pref_clipboard_history),
+            stringResource(R.string.pref_clipboard_history_summary),
+            on,
+        ) { v ->
+            p.set { putBoolean(K.CLIPBOARD_HISTORY, v) }
+            // Off means forget: the keyboard may not be running to do it.
+            if (!v) onDelete()
+        }
+        if (!on) return@Section
+        Choice(
+            stringResource(R.string.pref_clipboard_expiry),
+            p.string(K.CLIPBOARD_EXPIRY, K.DEFAULT_CLIPBOARD_EXPIRY),
+            mapOf(
+                "1" to R.string.clipboard_expiry_hour,
+                "24" to R.string.clipboard_expiry_day,
+                "168" to R.string.clipboard_expiry_week,
+            ).mapValues { stringResource(it.value) },
+        ) { v -> p.set { putString(K.CLIPBOARD_EXPIRY, v) } }
+        OutlinedButton(onClick = onDelete) { Text(stringResource(R.string.clipboard_delete_all)) }
     }
 }
 

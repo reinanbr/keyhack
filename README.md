@@ -63,13 +63,17 @@ install; use it only for testing.
   QWERTY, ABNT2, AZERTY, Dvorak and Colemak layouts (JSON, documented in
   [`layouts/README.md`](layouts/README.md)); English and Brazilian Portuguese
   dictionaries with autocorrect (undo with backspace), completions,
-  chat words (vc, kkk, lol) and next-word prediction that uses the last two
+  common misspellings (concerteza → com certeza), current words (WhatsApp,
+  selfie), chat words (vc, kkk, lol), on-device grammar and agreement
+  suggestions (nós vai → nós vamos, a apple → an apple) and next-word prediction that uses the last two
   words (trained on [Tatoeba](https://tatoeba.org) sentences, then on what
   you type); emoji suggested for the word you type; Unicode 17 emoji from
   the bundled Noto Color Emoji font (Android 13+); emoji with categories, recents, skin tones and
   EN/PT search; kaomoji; GIF search (results update as you type) with your own Giphy API key;
   stickers: import your images (GIFs become animated stickers) or send any
   emoji as a WhatsApp sticker.
+- **Clipboard history** (opt-in, encrypted, expiring, with pinned items) and
+  one-tap paste of what you just copied.
 - **Dev tools:** case conversions (camelCase, snake_case…), Base64, URL and
   HTML escaping, JSON pretty/minify, MD5/SHA hashes, UUID v4/v7, timestamps.
 - **Privacy controls:** incognito mode; nothing learned or suggested in
@@ -127,14 +131,14 @@ autocorrect, no learning, no clipboard capture and no snippet expansion
 :ime          InputMethodService, InputConnection, field policy, panels
 :keyboard     layout model and parser, Canvas rendering, touch, accessibility
 :layouts      bundled JSON layouts (see layouts/README.md)
-:suggest      dictionaries, autocorrect, prediction, count-only learning
+:suggest      dictionaries, autocorrect, prediction, grammar rules, count-only learning
 :emoji        emoji data, search, skin tones, kaomoji
 :media        GIF providers and the app's only HTTP client
 :commit       commitContent and fallbacks
 :devtools     text transforms (case, Base64, JSON, hashes, UUID, time)
 :stickers     sticker library and converters                     (M5)
-:clipboard    opt-in encrypted history                           (M4)
-:security     Keystore crypto, validators, MIME                  (M1+)
+:clipboard    opt-in encrypted clipboard history
+:security     Keystore crypto (AES-GCM)
 :data         settings
 :theme        themes (Material You, iOS), key shapes
 :core         shared utilities (JSON)
@@ -189,7 +193,7 @@ the diff:
 | M1 | JSON layouts, long-press, symbols, themes, settings, sensitive-field policy | ✅ |
 | M2 | PC mode: full layout, sticky modifiers, dev row, per-app PC mode | ✅ |
 | M3 | Dictionaries, autocorrect, prediction, count-only learning, incognito | ✅ |
-| M4 | Emoji ✅, opt-in encrypted clipboard history | partial |
+| M4 | Emoji ✅, opt-in encrypted clipboard history ✅ | ✅ |
 | M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅; WhatsApp sticker packs | partial |
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets, command palette | partial |

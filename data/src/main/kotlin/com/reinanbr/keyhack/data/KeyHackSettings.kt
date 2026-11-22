@@ -46,6 +46,9 @@ class KeyHackSettings(context: Context) {
     val autoCaps: Boolean get() = bool(AUTO_CAPS, true)
     val doubleSpacePeriod: Boolean get() = bool(DOUBLE_SPACE, true)
     val learning: Boolean get() = bool(LEARNING, true)
+
+    /** Grammar and agreement fixes offered in the suggestion bar. */
+    val grammar: Boolean get() = bool(GRAMMAR, true)
     val languages: List<String>
         get() = str(
             LANGUAGES,
@@ -61,6 +64,13 @@ class KeyHackSettings(context: Context) {
     val gifEnabled: Boolean get() = bool(GIF_ENABLED, true)
     val gifProvider: String get() = str(GIF_PROVIDER, "giphy").takeIf { it in GIF_PROVIDERS } ?: "giphy"
     fun gifKey(provider: String): String = str(GIF_KEY_PREFIX + provider, "")
+
+    // Clipboard history: opt-in, encrypted, unpinned items expire.
+    val clipboardHistory: Boolean get() = bool(CLIPBOARD_HISTORY, false)
+    val clipboardExpiryHours: Int
+        get() = str(CLIPBOARD_EXPIRY, DEFAULT_CLIPBOARD_EXPIRY).toIntOrNull()?.takeIf {
+            it.toString() in CLIPBOARD_EXPIRY_CHOICES
+        } ?: DEFAULT_CLIPBOARD_EXPIRY.toInt()
 
     fun edit(block: SharedPreferences.Editor.() -> Unit) = prefs.edit().apply(block).apply()
 
@@ -88,12 +98,18 @@ class KeyHackSettings(context: Context) {
         const val AUTO_CAPS = "auto_caps"
         const val DOUBLE_SPACE = "double_space_period"
         const val LEARNING = "learning"
+        const val GRAMMAR = "grammar_check"
         const val LANGUAGES = "languages"
         const val PC_APPS = "pc_apps"
         const val PC_NO_AUTOCORRECT = "pc_no_autocorrect"
         const val GIF_ENABLED = "gif_enabled"
         const val GIF_PROVIDER = "gif_provider"
         const val GIF_KEY_PREFIX = "gif_key_"
+
+        const val CLIPBOARD_HISTORY = "clipboard_history"
+        const val CLIPBOARD_EXPIRY = "clipboard_expiry_hours"
+        const val DEFAULT_CLIPBOARD_EXPIRY = "1"
+        val CLIPBOARD_EXPIRY_CHOICES = listOf("1", "24", "168")
 
         const val DEFAULT_DEV_ROW = "esc tab ctrl alt left down up right home end"
         const val DEFAULT_HEIGHT = 100

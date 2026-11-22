@@ -30,4 +30,24 @@
   <string name="keyhack_msg_failed">Não funcionou com este texto</string>
   <string name="keyhack_one_hand_switch">Mover o teclado para o outro lado</string>
   <string name="keyhack_one_hand_full">Teclado na largura toda</string>
+  <string name="keyhack_clipboard_title">Área de transferência</string>
+  <string name="keyhack_clipboard_empty">O que você copiar aparece aqui. Toque para colar; toque e segure para fixar ou apagar.</string>
+  <string name="keyhack_clipboard_off">O histórico da área de transferência está desligado. Ligue para guardar os textos que você copia, criptografados e só neste celular. Itens não fixados são apagados depois do tempo escolhido nas configurações; senhas marcadas como sensíveis nunca são guardadas.</string>
+  <string name="keyhack_clipboard_turn_on">Ligar histórico</string>
+  <string name="keyhack_clipboard_clear">Limpar</string>
+  <string name="keyhack_clipboard_cleared">Limpo (itens fixados mantidos)</string>
+  <string name="keyhack_clipboard_pin">📌 Fixar</string>
+  <string name="keyhack_clipboard_unpin">Desafixar</string>
+  <string name="keyhack_clipboard_delete">🗑 Apagar</string>
+  <string name="keyhack_clipboard_on">Histórico da área de transferência ligado</string>
+  <string name="keyhack_edit_select_all">Selecionar tudo</string>
+  <string name="keyhack_edit_select_line">Selecionar linha</string>
+  <string name="keyhack_edit_copy">Copiar</string>
+  <string name="keyhack_edit_cut">Recortar</string>
+  <string name="keyhack_edit_paste">Colar</string>
+  <string name="keyhack_edit_undo">Desfazer</string>
+  <string name="keyhack_edit_redo">Refazer</string>
+  <string name="keyhack_edit_doc_start">⇤ Início</string>
+  <string name="keyhack_edit_doc_end">Fim ⇥</string>
+  <string name="keyhack_tools_title">Ferramentas</string>
 </resources>

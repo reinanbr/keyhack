@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":data"))
     implementation(project(":stickers"))
+    implementation(project(":clipboard"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 }

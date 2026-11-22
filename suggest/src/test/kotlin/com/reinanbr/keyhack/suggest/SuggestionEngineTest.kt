@@ -26,6 +26,26 @@ class SuggestionEngineTest {
     }
 
     @Test
+    fun correctsCommonMisspellings() {
+        val pt = engine("pt", "en")
+        assertEquals("com certeza", pt.suggest("concerteza", null).autoCorrection)
+        assertEquals("menos", pt.suggest("menas", null).autoCorrection)
+        assertEquals("seja", pt.suggest("seje", null).autoCorrection)
+        assertEquals("Excelente", pt.suggest("Exelente", null).autoCorrection)
+        val en = engine("en")
+        assertEquals("definitely", en.suggest("definately", null).autoCorrection)
+        assertEquals("don't", en.suggest("dont", null).autoCorrection)
+    }
+
+    @Test
+    fun knowsCurrentWords() {
+        val pt = engine("pt", "en")
+        for (w in listOf("selfie", "stories", "crush", "sextou")) assertNull(pt.suggest(w, null).autoCorrection, w)
+        assertEquals("WhatsApp", pt.suggest("whatsapp", null).autoCorrection)
+        assertTrue(pt.suggest("whats", null).candidates.any { it.word == "WhatsApp" })
+    }
+
+    @Test
     fun keepsValidWords() {
         val e = engine("en")
         for (w in listOf("the", "cat", "hello", "keyboard", "a")) assertNull(e.suggest(w, null).autoCorrection, w)
@@ -126,10 +146,18 @@ class SuggestionEngineTest {
     companion object {
         val shipped: Map<String, Dictionary> by lazy {
             listOf("en", "pt").associateWith { lang ->
+                // As Suggester loads them: the dictionary plus chat words, extra words and misspellings.
+                val extras = listOf(
+                    "chat",
+                    "extra",
+                    "fixes",
+                ).map { File("src/main/assets/dict/$lang.$it").bufferedReader() }
                 GZIPInputStream(File("src/main/assets/dict/$lang.dict.gz").inputStream()).bufferedReader().use { main ->
-                    File(
-                        "src/main/assets/dict/$lang.chat",
-                    ).bufferedReader().use { chat -> Dictionary.read(lang, main, chat) }
+                    try {
+                        Dictionary.read(lang, main, *extras.toTypedArray())
+                    } finally {
+                        extras.forEach { it.close() }
+                    }
                 }
             }
         }

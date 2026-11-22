@@ -1,6 +1,7 @@
 package com.reinanbr.keyhack.ime
 
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
@@ -19,12 +20,16 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import com.reinanbr.keyhack.clipboard.ClipItem
+import com.reinanbr.keyhack.clipboard.ClipboardHistory
+import com.reinanbr.keyhack.clipboard.ClipboardStore
 import com.reinanbr.keyhack.commit.ContentCommitter
 import com.reinanbr.keyhack.data.KeyHackSettings
 import com.reinanbr.keyhack.devtools.DevTool
 import com.reinanbr.keyhack.devtools.TextTransforms
 import com.reinanbr.keyhack.emoji.EmojiData
 import com.reinanbr.keyhack.emoji.EmojiFont
+import com.reinanbr.keyhack.ime.ui.ClipboardPanel
 import com.reinanbr.keyhack.ime.ui.EditAction
 import com.reinanbr.keyhack.ime.ui.EmojiPanel
 import com.reinanbr.keyhack.ime.ui.EmojiStore
@@ -52,6 +57,7 @@ import com.reinanbr.keyhack.stickers.StickerStore
 import com.reinanbr.keyhack.suggest.Candidate
 import com.reinanbr.keyhack.suggest.Suggester
 import com.reinanbr.keyhack.suggest.Suggestions
+import com.reinanbr.keyhack.suggest.grammar.GrammarFix
 import com.reinanbr.keyhack.theme.KeyboardColors
 import com.reinanbr.keyhack.theme.KeyboardThemes
 import java.text.BreakIterator
@@ -77,8 +83,9 @@ class KeyHackImeService :
     EmojiPanel.Listener,
     GifPanel.Listener,
     StickerPanel.Listener,
-    ToolsPanel.Listener {
-    private enum class Panel { KEYBOARD, EMOJI, GIF, STICKER, TOOLS }
+    ToolsPanel.Listener,
+    ClipboardPanel.Listener {
+    private enum class Panel { KEYBOARD, EMOJI, GIF, STICKER, TOOLS, CLIPBOARD }
 
     private enum class Search { NONE, EMOJI, GIF }
 
@@ -88,6 +95,11 @@ class KeyHackImeService :
     private lateinit var gifs: GifRepository
     private lateinit var emojiStore: EmojiStore
     private lateinit var stickers: StickerStore
+    private lateinit var clipboard: ClipboardStore
+    private lateinit var clipboardManager: ClipboardManager
+
+    /** The quick-paste chip was used or dismissed for this item. */
+    private var dismissedClipId = 0L
     private val stickerIo = Executors.newSingleThreadExecutor() // threads start on first use
     private val main = Handler(Looper.getMainLooper())
 
@@ -103,6 +115,7 @@ class KeyHackImeService :
     private var gifPanel: GifPanel? = null
     private var toolsPanel: ToolsPanel? = null
     private var stickerPanel: StickerPanel? = null
+    private var clipboardPanel: ClipboardPanel? = null
     private var emojiData: EmojiData? = null
 
     private var colors: KeyboardColors = KeyboardThemes.LIGHT
@@ -124,6 +137,9 @@ class KeyHackImeService :
     private var suggestions: Suggestions = Suggestions.EMPTY
     private var predictions: List<Candidate> = emptyList()
     private var stripShowsToolbar = true
+
+    /** A grammar or agreement fix for the words just typed, shown first in the bar. */
+    private var grammarFix: GrammarFix? = null
     private var previousWord: String? = null
 
     /** The word before [previousWord], for two-word context ("eu te" -> "amo"). */
@@ -139,8 +155,23 @@ class KeyHackImeService :
 
     private val prefListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == LEARNING_CLEAR_KEY) suggester.clearHistory() else settingsChanged = true
+            when {
+                key == LEARNING_CLEAR_KEY -> suggester.clearHistory()
+
+                // Turning history off forgets everything it kept, pinned items included.
+                key == KeyHackSettings.CLIPBOARD_HISTORY && !settings.clipboardHistory -> {
+                    clipboard.wipe()
+                    settingsChanged = true
+                }
+
+                else -> settingsChanged = true
+            }
         }
+
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { captureClip() }
+    private val clipboardChanged: () -> Unit = {
+        if (panel == Panel.CLIPBOARD) refreshClipboardPanel()
+    }
 
     private val pcMode: Boolean
         get() = pcOverride ?: (settings.layout == "pc" || editorPackage in settings.pcApps)
@@ -158,6 +189,11 @@ class KeyHackImeService :
         gifs = GifRepository(this)
         emojiStore = EmojiStore(this)
         stickers = StickerStore(this)
+        clipboard = ClipboardStore.get(this)
+        clipboard.expiryMs = settings.clipboardExpiryHours * ClipboardHistory.HOUR_MS
+        clipboard.addListener(clipboardChanged)
+        clipboardManager = getSystemService(ClipboardManager::class.java)
+        clipboardManager.addPrimaryClipChangedListener(clipListener)
         Thread({
             val data = runCatching { assets.open("emoji.tsv").bufferedReader().use(EmojiData::read) }.getOrNull()
             main.post {
@@ -169,6 +205,8 @@ class KeyHackImeService :
 
     override fun onDestroy() {
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
+        clipboardManager.removePrimaryClipChangedListener(clipListener)
+        clipboard.removeListener(clipboardChanged)
         suggester.close()
         gifs.close()
         stickerIo.shutdown()
@@ -250,6 +288,7 @@ class KeyHackImeService :
         gifPanel = null
         toolsPanel = null
         stickerPanel = null
+        clipboardPanel = null
         settingsChanged = true
         panel = Panel.KEYBOARD
         return rootView
@@ -302,6 +341,8 @@ class KeyHackImeService :
         emojiPanel?.applyColors(colors)
         gifPanel?.applyColors(colors)
         toolsPanel?.applyColors(colors)
+        clipboardPanel?.applyColors(colors)
+        clipboard.expiryMs = settings.clipboardExpiryHours * ClipboardHistory.HOUR_MS
         root?.setBackgroundColor(colors.background)
         suggester.setLanguages(languages())
     }
@@ -386,6 +427,20 @@ class KeyHackImeService :
         if (composing.isEmpty()) {
             main.removeCallbacks(autoCapsRunnable)
             main.post(autoCapsRunnable)
+            if (grammarFix != null) {
+                main.removeCallbacks(grammarStaleCheck)
+                main.post(grammarStaleCheck)
+            }
+        }
+    }
+
+    /** The cursor moved: keep the grammar chip only if the text it fixes is still right before the cursor. */
+    private val grammarStaleCheck = Runnable {
+        val fix = grammarFix ?: return@Runnable
+        val expected = fix.original + fix.tail
+        if (currentInputConnection?.getTextBeforeCursor(expected.length, 0)?.toString() != expected) {
+            grammarFix = null
+            renderStrip()
         }
     }
 
@@ -572,7 +627,10 @@ class KeyHackImeService :
         }
         revert = null
         if (policy.suggestions && !policy.rawKeys && isWordChar(text)) {
-            if (composing.isEmpty()) autoSpace = false
+            if (composing.isEmpty()) {
+                autoSpace = false
+                clearGrammarFix()
+            }
             composing.append(text)
             ownEdit { ic.setComposingText(composing, 1) }
             shift.onCharacterCommitted()
@@ -650,6 +708,7 @@ class KeyHackImeService :
             return
         }
         autoSpace = false
+        clearGrammarFix()
         val r = revert
         revert = null
         if (r != null && composing.isEmpty()) {
@@ -741,7 +800,7 @@ class KeyHackImeService :
 
             Command.IME_PICKER -> getSystemService(InputMethodManager::class.java).showInputMethodPicker()
 
-            Command.CLIPBOARD -> showMessage(getString(R.string.keyhack_msg_soon))
+            Command.CLIPBOARD -> openClipboard()
         }
     }
 
@@ -860,7 +919,9 @@ class KeyHackImeService :
     private fun showDefaultStrip() {
         predictions = emptyList()
         stripShowsToolbar = true
+        grammarFix = null
         renderStrip()
+        requestGrammarCheck()
         val prev = previousWord
         if (policy.suggestions && composing.isEmpty() && prev != null && !previousWordStale) {
             suggester.predict(prev, beforeWord) { p ->
@@ -870,6 +931,52 @@ class KeyHackImeService :
                 renderStrip()
             }
         }
+    }
+
+    private fun grammarAllowed(): Boolean =
+        settings.grammar && policy.suggestions && policy.kind == FieldKind.TEXT && !policy.rawKeys
+
+    private fun requestGrammarCheck() {
+        if (!grammarAllowed() || composing.isNotEmpty() || search != Search.NONE) {
+            suggester.cancelGrammar()
+            return
+        }
+        val text = currentInputConnection?.getTextBeforeCursor(GRAMMAR_LOOKBACK, 0)?.toString()
+        if (text.isNullOrEmpty()) return
+        suggester.checkGrammar(text) { fix ->
+            if (fix == null || composing.isNotEmpty() || search != Search.NONE) return@checkGrammar
+            grammarFix = fix
+            stripShowsToolbar = false
+            renderStrip()
+        }
+    }
+
+    private fun clearGrammarFix() {
+        suggester.cancelGrammar()
+        if (grammarFix == null) return
+        grammarFix = null
+        renderStrip()
+    }
+
+    /** Replaces the words the fix is about, if they are still right before the cursor. */
+    private fun applyGrammarFix() {
+        val fix = grammarFix ?: return
+        val ic = currentInputConnection ?: return
+        grammarFix = null
+        val expected = fix.original + fix.tail
+        if (ic.getTextBeforeCursor(expected.length, 0)?.toString() == expected) {
+            ownEdit {
+                ic.beginBatchEdit()
+                ic.deleteSurroundingText(expected.length, 0)
+                ic.commitText(fix.replacement + fix.tail, 1)
+                ic.endBatchEdit()
+            }
+        }
+        previousWordStale = true
+        revert = null
+        autoSpace = false
+        updateAutoCaps()
+        showDefaultStrip()
     }
 
     private fun renderStrip() {
@@ -893,7 +1000,32 @@ class KeyHackImeService :
             return
         }
         val words = if (composing.isNotEmpty()) suggestionWords() else predictions.map { WordSlot(it.word, false) }
+        val fix = grammarFix
+        if (fix != null && composing.isEmpty() && !stripShowsToolbar) {
+            // The fix first (✓ marks it), then the best next words.
+            val items = ArrayList<StripView.Item>()
+            items += StripView.Item("toolbar", "‹", weight = 0.5f, large = true, dim = true)
+            items += StripView.Item("g", "✓ " + fix.replacement, weight = GRAMMAR_CHIP_WEIGHT, accent = true)
+            for (w in words.take(2)) items += StripView.Item("w:" + w.word, w.label, weight = 1.3f)
+            s.show(items, withDividers = true)
+            return
+        }
         if (stripShowsToolbar || words.isEmpty()) {
+            val clip = if (composing.isEmpty()) freshClip() else null
+            if (clip != null) {
+                // Just copied something: offer to paste it, as the first thing in the bar.
+                s.show(
+                    listOf(
+                        StripView.Item(
+                            "clip_paste",
+                            "📋  " + clip.text.take(CHIP_CHARS).replace('\n', ' '),
+                            weight = 4.4f,
+                        ),
+                        StripView.Item("clip_dismiss", "✕", weight = 0.6f, dim = true),
+                    ),
+                )
+                return
+            }
             s.show(toolbarItems())
             return
         }
@@ -968,6 +1100,7 @@ class KeyHackImeService :
         add(StripView.Item("emoji", "☺", large = true))
         if (gifAllowed()) add(StripView.Item("gif", "GIF", bold = true))
         add(StripView.Item("sticker", "🖼", large = true))
+        add(StripView.Item("clip", "📋", large = true))
         add(StripView.Item("tools", "</>", bold = true))
         add(StripView.Item("mode", "DEV", bold = true, accent = advanced))
         if (advanced) add(StripView.Item("pc", if (pcMode) "ABC" else "PC", bold = true, accent = pcMode))
@@ -983,6 +1116,8 @@ class KeyHackImeService :
 
             id.startsWith("x:") -> pickEmojiSuggestion(id.substring(2))
 
+            id == "g" -> applyGrammarFix()
+
             id == "toolbar" -> {
                 stripShowsToolbar = true
                 renderStrip()
@@ -993,6 +1128,15 @@ class KeyHackImeService :
             id == "gif" -> onCommand(Command.GIF)
 
             id == "sticker" -> openStickers()
+
+            id == "clip" -> openClipboard()
+
+            id == "clip_paste" -> freshClip()?.let { pasteClip(it) }
+
+            id == "clip_dismiss" -> {
+                dismissedClipId = freshClip()?.id ?: dismissedClipId
+                renderStrip()
+            }
 
             id == "tools" -> onCommand(Command.TOOLS)
 
@@ -1087,6 +1231,12 @@ class KeyHackImeService :
                     toolsPanel = it
                     frame.addView(it)
                 }
+
+                Panel.CLIPBOARD -> clipboardPanel ?: ClipboardPanel(this).also {
+                    it.listener = this
+                    clipboardPanel = it
+                    frame.addView(it)
+                }
             }
         if (view !== kv) {
             view.layoutParams = FrameLayout.LayoutParams(
@@ -1097,6 +1247,7 @@ class KeyHackImeService :
             gifPanel?.applyColors(colors)
             toolsPanel?.applyColors(colors)
             stickerPanel?.applyColors(colors)
+            clipboardPanel?.applyColors(colors)
         }
         view.visibility = View.VISIBLE
         afterPanelShown(p)
@@ -1112,6 +1263,8 @@ class KeyHackImeService :
             }
 
             Panel.KEYBOARD -> applyOneHanded()
+
+            Panel.CLIPBOARD -> refreshClipboardPanel()
 
             else -> Unit
         }
@@ -1403,6 +1556,80 @@ class KeyHackImeService :
         showDefaultStrip()
     }
 
+    // ------------------------------------------------------------ clipboard
+
+    /**
+     * Keeps what the user copies, when history is on. Never in incognito or
+     * sensitive fields, and never clips the source app marks sensitive
+     * (password managers set ClipDescription.EXTRA_IS_SENSITIVE).
+     */
+    private fun captureClip() {
+        if (!settings.clipboardHistory || incognito) return
+        val info = currentInputEditorInfo
+        if (info != null && EditorPolicy.isSensitive(info.inputType, info.imeOptions)) return
+        val clip = runCatching { clipboardManager.primaryClip }.getOrNull() ?: return
+        val description = clip.description
+        if (description.extras?.getBoolean(EXTRA_IS_SENSITIVE) == true) return
+        if (!description.hasMimeType("text/*") || clip.itemCount == 0) return
+        val text = clip.getItemAt(0).text?.toString() ?: return
+        clipboard.add(text)
+        if (panel == Panel.KEYBOARD && composing.isEmpty() && search == Search.NONE) renderStrip()
+    }
+
+    /** The item copied in the last moments, for the quick-paste chip; never in password fields. */
+    private fun freshClip(): ClipItem? {
+        if (!settings.clipboardHistory || incognito || policy.kind == FieldKind.PASSWORD) return null
+        return clipboard.latest(FRESH_CLIP_MS)?.takeIf { it.id != dismissedClipId }
+    }
+
+    private fun openClipboard() {
+        commitComposing(autocorrect = false)
+        showPanel(Panel.CLIPBOARD)
+    }
+
+    private fun refreshClipboardPanel() {
+        clipboardPanel?.show(clipboard.items(), settings.clipboardHistory)
+    }
+
+    private fun pasteClip(item: ClipItem) {
+        val ic = currentInputConnection ?: return
+        commitComposing(autocorrect = false)
+        dismissedClipId = item.id
+        ic.commitText(item.text, 1)
+        revert = null
+        autoSpace = false
+        previousWordStale = true
+        updateAutoCaps()
+        showDefaultStrip()
+    }
+
+    override fun onClipPicked(item: ClipItem) {
+        showPanel(Panel.KEYBOARD)
+        pasteClip(item)
+    }
+
+    override fun onClipPinned(item: ClipItem, pinned: Boolean) = clipboard.setPinned(item.id, pinned)
+
+    override fun onClipDeleted(item: ClipItem) = clipboard.remove(item.id)
+
+    override fun onClipboardClear() {
+        clipboard.clearUnpinned()
+        showPanel(Panel.KEYBOARD)
+        showMessage(getString(R.string.keyhack_clipboard_cleared))
+    }
+
+    override fun onClipboardEnable() {
+        settings.edit { putBoolean(KeyHackSettings.CLIPBOARD_HISTORY, true) }
+        refreshClipboardPanel()
+        // Whatever is on the clipboard now is the first item.
+        captureClip()
+    }
+
+    override fun onClipboardBack() {
+        showPanel(Panel.KEYBOARD)
+        showDefaultStrip()
+    }
+
     // --------------------------------------------------------------- search
 
     private fun openSearch(target: Search) {
@@ -1558,6 +1785,13 @@ class KeyHackImeService :
         private const val PREVIOUS_LOOKBACK = 64
         private const val EMOJI_SLOT_WEIGHT = 0.8f
         private const val ONE_HAND_FRACTION = 0.82f
+        private const val FRESH_CLIP_MS = 2 * 60 * 1000L
+        private const val GRAMMAR_LOOKBACK = 200
+        private const val GRAMMAR_CHIP_WEIGHT = 2.6f
+        private const val CHIP_CHARS = 60
+
+        /** ClipDescription.EXTRA_IS_SENSITIVE (API 33); apps set it on older versions too. */
+        private const val EXTRA_IS_SENSITIVE = "android.content.extra.IS_SENSITIVE"
 
         // "... before previous" at the end of the text; group 1 is empty when only one word is there.
         private val LAST_WORDS = Regex("(?:([\\p{L}'’-]+)\\s+)?([\\p{L}'’-]+)\\s*$")

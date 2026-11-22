@@ -161,13 +161,18 @@ class Dictionary private constructor(
 
         /**
          * Reads tools/gen_dict.py output (already decompressed), plus any extra
-         * word lists in the same format (the chat words). A word in several
-         * lists keeps its highest frequency.
+         * lists in the same format (chat words, extra words, misspellings). A
+         * word in several lists keeps its highest frequency.
          */
         fun read(language: String, reader: BufferedReader, vararg extra: BufferedReader): Dictionary {
             val entries = ArrayList<Pair<String, Int>>(INITIAL)
             val fixes = HashMap<String, String>()
             for (r in listOf(reader) + extra) readInto(r, entries, fixes)
+            // A listed typo ("menas" -> "menos") is never a word, even if a wordlist has it.
+            // Case fixes ("i" -> "I") keep the word.
+            if (fixes.isNotEmpty()) {
+                entries.removeAll { (w, _) -> fixes[key(w)]?.let { key(it) != key(w) } == true }
+            }
             return build(language, entries, fixes)
         }
 

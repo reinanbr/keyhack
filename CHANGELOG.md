@@ -7,6 +7,39 @@ All notable changes to KeyHack are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Clipboard history (opt-in): the 📋 button in the toolbar lists what you
+  copied; tap to paste, long-press to pin or delete. Pinned items stay,
+  the rest are deleted after 1 hour, 1 day or 7 days (settings). Stored
+  encrypted with a key kept in the Android Keystore, never backed up, and
+  never taken from password fields, incognito, or copies the source app
+  marks sensitive (password managers). Turning it off deletes it all.
+- Paste what you just copied: for two minutes after a copy, it appears as
+  the first item in the suggestion bar.
+- Grammar suggestions, on the phone, in Portuguese and English: after you
+  finish a word, a ✓ chip in the suggestion bar offers a fix and nothing
+  changes until you tap it. Verb agreement ("nós vai" → "nós vamos",
+  "eles fala" → "eles falam", "a gente fomos" → "a gente foi"), plural
+  agreement ("os menino" → "os meninos", "dois real" → "dois reais"),
+  common mistakes ("a muito tempo" → "há muito tempo", "fazem dois anos"
+  → "faz dois anos", "se eu ver" → "se eu vir", "pra mim fazer" → "pra eu
+  fazer", "à pé" → "a pé", "Porque você não veio?" → "Por que…"), and
+  English ("he don't" → "he doesn't", "could of" → "could have", "a apple"
+  → "an apple", "your welcome" → "you're welcome"). The rules live in
+  plain text files (`suggest/src/main/assets/grammar/`) anyone can extend.
+  Can be turned off in settings.
+- About 140 common Portuguese and 160 English misspellings are corrected
+  on space ("concerteza" → "com certeza", "menas" → "menos", "seje" →
+  "seja", "definately" → "definitely", "dont" → "don't").
+- Current words the dictionaries lacked: WhatsApp, iFood, TikTok, stories,
+  selfie, crush, sextou, print, live, rizz, lowkey and others.
+
+### Changed
+
+- The dev tools panel's editing actions (Copy, Paste, Undo…) are
+  translated.
+
 ## [0.2.0] - 2026-11-16
 
 ### Added

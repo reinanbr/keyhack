@@ -10,20 +10,22 @@ import android.widget.BaseAdapter
 import android.widget.GridView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.StringRes
 import com.reinanbr.keyhack.devtools.DevTool
+import com.reinanbr.keyhack.ime.R
 import com.reinanbr.keyhack.theme.KeyboardColors
 
 /** Editing actions that the tools panel offers besides [DevTool] transforms. */
-enum class EditAction(val label: String) {
-    SELECT_ALL("Select all"),
-    SELECT_LINE("Select line"),
-    COPY("Copy"),
-    CUT("Cut"),
-    PASTE("Paste"),
-    UNDO("Undo"),
-    REDO("Redo"),
-    DOC_START("⇤ Start"),
-    DOC_END("End ⇥"),
+enum class EditAction(@param:StringRes val label: Int) {
+    SELECT_ALL(R.string.keyhack_edit_select_all),
+    SELECT_LINE(R.string.keyhack_edit_select_line),
+    COPY(R.string.keyhack_edit_copy),
+    CUT(R.string.keyhack_edit_cut),
+    PASTE(R.string.keyhack_edit_paste),
+    UNDO(R.string.keyhack_edit_undo),
+    REDO(R.string.keyhack_edit_redo),
+    DOC_START(R.string.keyhack_edit_doc_start),
+    DOC_END(R.string.keyhack_edit_doc_end),
 }
 
 /**
@@ -42,14 +44,14 @@ class ToolsPanel(context: Context) : LinearLayout(context) {
     var listener: Listener? = null
 
     private sealed interface Entry {
-        val label: String
+        fun label(context: Context): String
 
         data class Edit(val action: EditAction) : Entry {
-            override val label get() = action.label
+            override fun label(context: Context) = context.getString(action.label)
         }
 
         data class Tool(val tool: DevTool) : Entry {
-            override val label get() = tool.label
+            override fun label(context: Context) = tool.label
         }
     }
 
@@ -82,7 +84,7 @@ class ToolsPanel(context: Context) : LinearLayout(context) {
                         )
                     }
                 val e = entries[position]
-                tv.text = e.label
+                tv.text = e.label(context)
                 colors?.let { c ->
                     tv.setTextColor(c.label)
                     tv.background =
@@ -118,7 +120,7 @@ class ToolsPanel(context: Context) : LinearLayout(context) {
         header.show(
             listOf(
                 StripView.Item("abc", "ABC", weight = 1f, bold = true),
-                StripView.Item("", "</>  Dev tools", weight = 4f, dim = true),
+                StripView.Item("", "</>  " + context.getString(R.string.keyhack_tools_title), weight = 4f, dim = true),
             ),
         )
     }

@@ -1,0 +1,33 @@
+# KeyHack grammar rules, English. Copyright 2026 The KeyHack Authors.
+# Apache License 2.0. Written for KeyHack; add rules freely.
+#
+# Format: see grammar/pt.rules. "a" versus "an" is checked in code
+# (GrammarChecker), with the dictionary, not here.
+
+# --- modal + "of"
+should|could|would|must|might|may of => $1 have
+
+# --- subject and verb (the guard skips questions: "did he have", "does it do")
+!did|does|do|will|would|could|should|can|may|might|must|to|let|make|makes|made|help|helps|had|shall|cannot|didn't|doesn't|don't|won't|wouldn't|couldn't|shouldn't|can't he|she|it have => $1 has
+!did|does|do|will|would|could|should|can|may|might|must|to|let|make|makes|made|help|helps|had|shall|cannot|didn't|doesn't|don't|won't|wouldn't|couldn't|shouldn't|can't he|she|it do => $1 does
+he|she|it don't => $1 doesn't
+he|she|it haven't => $1 hasn't
+he|she|it aren't => $1 isn't
+he|she|it are => $1 is
+i|you|we|they doesn't => $1 don't
+i|you|we|they hasn't => $1 haven't
+!did|does|do|will|would|could|should|can|may|might|must|to|let|make|makes|made|help|helps|had|shall i|you|we|they has => $1 have
+you|we|they is => $1 are
+you|we|they isn't => $1 aren't
+you|we|they was => $1 were
+you|we|they wasn't => $1 weren't
+i is|are => $1 am
+!have|has|had|i've|you've|we've|they've|haven't|hasn't i|you|we|they|he|she seen => $1 saw
+
+# --- easily confused words
+your welcome => you're welcome
+your|ur not|gonna => you're $2
+their is|are|was|were => there $2
+its a|an|the|not|been|gonna|going|so|very|really|just|also|still|always|never|ok|okay|fine|true|getting => it's $2
+more|less|better|worse|rather|other|bigger|smaller|faster|slower|higher|lower|greater|older|younger|larger|cheaper|easier|harder|longer|shorter then => $1 than
+to|gonna|will|might|could|would|don't|didn't|not|never loose => $1 lose

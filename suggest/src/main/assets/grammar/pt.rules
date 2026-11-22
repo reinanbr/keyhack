@@ -1,0 +1,139 @@
+# KeyHack grammar rules, Brazilian Portuguese. Copyright 2026 The KeyHack
+# Authors. Apache License 2.0. Written for KeyHack; add rules freely.
+#
+# A rule is checked right after you finish a word (space or punctuation),
+# against the last words of the sentence. When it matches, its fix appears
+# as the first chip in the suggestion bar; nothing changes until you tap it.
+#
+#   PATTERN => REPLACEMENT
+#
+# PATTERN is a sequence of words, matched without regard to case, that must
+# end at the last word typed:
+#   a|b|c    any of these words
+#   _        any word
+#   <inf>    an infinitive the dictionary knows (falar, comer, partir, pôr)
+#   <num>    a number (2, 10, dois, três...)
+#   ^        (first only) the match starts the sentence
+#   !a|b     (first only) the word before the match must NOT be one of these;
+#            it is not part of the match ("daqui a dois anos" is correct)
+# REPLACEMENT is words; $1, $2... copy the word matched at that position.
+#
+# Agreement between pronoun and verb ("nós vai" -> "nós vamos") and between
+# a plural determiner and its noun ("os menino" -> "os meninos") is checked
+# in code (GrammarChecker), with the dictionary, not here.
+
+# --- há: tempo decorrido ("há dois anos"); "a" é para o futuro ("daqui a")
+!daqui|até|de|desde|<num> a muito|pouco|bastante tempo => há $2 tempo
+!daqui|até|de|desde|<num> a anos|meses|dias|semanas|séculos|décadas|tempos => há $2
+!daqui|até|de|desde|<num> a <num> anos|meses|dias|semanas|horas|minutos|séculos|décadas => há $2 $3
+agora pouco => agora há pouco
+
+# --- verbos impessoais: haver (existir) e fazer (tempo) ficam no singular
+houveram muitos|muitas|vários|várias|alguns|algumas|problemas|casos|mudanças|erros|brigas|reclamações => houve $2
+fazem <num> anos|meses|dias|semanas|horas|minutos|séculos|décadas => faz $2 $3
+fazem anos|meses|dias|semanas|séculos|décadas|horas => faz $2
+fazem muito|pouco|bastante tempo => faz $2 tempo
+vai fazer <num> anos|meses|dias|semanas => vai fazer $3 $4
+
+# --- pronomes
+para|pra mim <inf> => $1 eu $3
+entre eu e => entre mim e
+com eu => comigo
+eu se => eu me
+nós se => nós nos
+
+# --- futuro do subjuntivo: "se eu ver" -> "se eu vir", "quando eu ter" -> "quando eu tiver"
+se|quando|enquanto eu|você|vc|ele|ela ver => $1 $2 vir
+se|quando|enquanto a gente ver => $1 a gente vir
+se|quando|enquanto nós ver => $1 nós virmos
+se|quando|enquanto eles|elas|vocês|vcs ver => $1 $2 virem
+se|quando|enquanto eu|você|vc|ele|ela fazer => $1 $2 fizer
+se|quando|enquanto a gente fazer => $1 a gente fizer
+se|quando|enquanto nós fazer => $1 nós fizermos
+se|quando|enquanto eles|elas|vocês|vcs fazer => $1 $2 fizerem
+se|quando|enquanto eu|você|vc|ele|ela ter => $1 $2 tiver
+se|quando|enquanto a gente ter => $1 a gente tiver
+se|quando|enquanto nós ter => $1 nós tivermos
+se|quando|enquanto eles|elas|vocês|vcs ter => $1 $2 tiverem
+se|quando|enquanto eu|você|vc|ele|ela poder => $1 $2 puder
+se|quando|enquanto a gente poder => $1 a gente puder
+se|quando|enquanto nós poder => $1 nós pudermos
+se|quando|enquanto eles|elas|vocês|vcs poder => $1 $2 puderem
+se|quando|enquanto eu|você|vc|ele|ela querer => $1 $2 quiser
+se|quando|enquanto a gente querer => $1 a gente quiser
+se|quando|enquanto nós querer => $1 nós quisermos
+se|quando|enquanto eles|elas|vocês|vcs querer => $1 $2 quiserem
+se|quando|enquanto eu|você|vc|ele|ela saber => $1 $2 souber
+se|quando|enquanto a gente saber => $1 a gente souber
+se|quando|enquanto nós saber => $1 nós soubermos
+se|quando|enquanto eles|elas|vocês|vcs saber => $1 $2 souberem
+se|quando|enquanto eu|você|vc|ele|ela dizer => $1 $2 disser
+se|quando|enquanto a gente dizer => $1 a gente disser
+se|quando|enquanto nós dizer => $1 nós dissermos
+se|quando|enquanto eles|elas|vocês|vcs dizer => $1 $2 disserem
+se|quando|enquanto eu|você|vc|ele|ela trazer => $1 $2 trouxer
+se|quando|enquanto a gente trazer => $1 a gente trouxer
+se|quando|enquanto nós trazer => $1 nós trouxermos
+se|quando|enquanto eles|elas|vocês|vcs trazer => $1 $2 trouxerem
+se|quando|enquanto eu|você|vc|ele|ela estar => $1 $2 estiver
+se|quando|enquanto a gente estar => $1 a gente estiver
+se|quando|enquanto nós estar => $1 nós estivermos
+se|quando|enquanto eles|elas|vocês|vcs estar => $1 $2 estiverem
+se|quando|enquanto eu|você|vc|ele|ela ir => $1 $2 for
+se|quando|enquanto a gente ir => $1 a gente for
+se|quando|enquanto nós ir => $1 nós formos
+se|quando|enquanto eles|elas|vocês|vcs ir => $1 $2 forem
+se|quando|enquanto eu|você|vc|ele|ela ser => $1 $2 for
+se|quando|enquanto a gente ser => $1 a gente for
+se|quando|enquanto nós ser => $1 nós formos
+se|quando|enquanto eles|elas|vocês|vcs ser => $1 $2 forem
+se|quando|enquanto eu|você|vc|ele|ela pôr|por => $1 $2 puser
+se|quando|enquanto a gente pôr|por => $1 a gente puser
+se|quando|enquanto nós pôr|por => $1 nós pusermos
+se|quando|enquanto eles|elas|vocês|vcs pôr|por => $1 $2 puserem
+se|quando|enquanto eu|você|vc|ele|ela manter => $1 $2 mantiver
+se|quando|enquanto a gente manter => $1 a gente mantiver
+se|quando|enquanto nós manter => $1 nós mantivermos
+se|quando|enquanto eles|elas|vocês|vcs manter => $1 $2 mantiverem
+se|quando|enquanto eu|você|vc|ele|ela caber => $1 $2 couber
+se|quando|enquanto a gente caber => $1 a gente couber
+se|quando|enquanto nós caber => $1 nós coubermos
+se|quando|enquanto eles|elas|vocês|vcs caber => $1 $2 couberem
+se|quando|enquanto eu|você|vc|ele|ela propor => $1 $2 propuser
+se|quando|enquanto a gente propor => $1 a gente propuser
+se|quando|enquanto nós propor => $1 nós propusermos
+se|quando|enquanto eles|elas|vocês|vcs propor => $1 $2 propuserem
+se|quando|enquanto eu|você|vc|ele|ela obter => $1 $2 obtiver
+se|quando|enquanto a gente obter => $1 a gente obtiver
+se|quando|enquanto nós obter => $1 nós obtivermos
+se|quando|enquanto eles|elas|vocês|vcs obter => $1 $2 obtiverem
+
+# --- crase
+à <inf> => a $2
+à partir => a partir
+à pé|cavalo|prazo|distância => a $2
+à ele|eles|elas|você|vocês|vc|vcs|mim|ti|este|esse|isso|isto|aquilo|um|cada|todo|tudo|quem|ninguém|alguém|nenhum|nenhuma => a $2
+^ as vezes => às vezes
+e|mas|porque|pq|eu|ele|ela|nós|eles|elas|você|vc|só|até|que as vezes => $1 às vezes
+!todas|das|nas|pelas|durante|essas|estas|passei|passou|passamos as <num> horas|h => às $2 $3
+
+# --- expressões
+a nível de => em nível de
+ao meu|teu|seu|nosso|vosso ver => a $2 ver
+meio-dia e meio => meio-dia e meia
+haja visto => haja vista
+mal humor|exemplo|caráter|gosto|cheiro|hábito|negócio|tempo => mau $2
+!o|um|do|ao|pelo|esse|este|aquele|nosso|seu|meu|teu|novo|bom agente vai|vamos|foi|tem|pode|está|tá|faz|precisa|quer|sabe|era|ia|estava|fica|ficou|gosta|acha|viu|se|não|já|também|só|nunca|sempre|tinha|vê|conversa|pensa => a gente $2
+afim de => a fim de
+tô|to|estou|tava|estava|fiquei|ficou|tá|está afim => $1 a fim
+aonde você|vc|ele|ela|eu|nós|eles|elas|vocês|cê está|tá|estás|fica|mora|estava|morava|trabalha|estuda => onde $2 $3
+
+# --- mas (oposição) x mais (quantidade), no começo de uma oração
+^ mais eu|ele|ela|nós|eles|elas|você|vc|vocês|não|também => mas $2
+, mais não|eu|ele|ela|nós|eles|elas|você|vc|vocês|também|mesmo|enfim => , mas $3
+
+# --- voz passiva sintética: o verbo concorda com o sujeito no plural
+vende-se casas|apartamentos|carros|motos|roupas|celulares|lotes|terrenos|imóveis|bicicletas|móveis => vendem-se $2
+aluga-se casas|apartamentos|quartos|salas|carros|kitnets|vagas|imóveis => alugam-se $2
+conserta-se celulares|computadores|notebooks|roupas|bicicletas|eletrônicos|sapatos => consertam-se $2
+compra-se carros|celulares|móveis|roupas => compram-se $2

@@ -5,6 +5,10 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
+import com.reinanbr.keyhack.suggest.grammar.GrammarChecker
+import com.reinanbr.keyhack.suggest.grammar.GrammarFix
+import com.reinanbr.keyhack.suggest.grammar.LanguageGrammar
+import com.reinanbr.keyhack.suggest.grammar.Lexicon
 import java.io.BufferedReader
 import java.io.File
 import java.util.concurrent.FutureTask
@@ -30,6 +34,10 @@ class Suggester(context: Context) {
     private val engine = SuggestionEngine(emptyList(), history)
     private val cache = HashMap<String, Dictionary>()
     private val ngramCache = HashMap<String, NgramModel>()
+    private val grammarCache = HashMap<String, LanguageGrammar>()
+    private var grammar = GrammarChecker(emptyList())
+
+    @Volatile private var grammarGeneration = 0
 
     @Volatile private var generation = 0
     private var loadedLanguages = emptyList<String>()
@@ -50,9 +58,16 @@ class Suggester(context: Context) {
                     lang,
                 )?.also { ngramCache[lang] = it }
             }
+            grammar = GrammarChecker(
+                languages.mapNotNull { lang ->
+                    val dict = cache[lang] ?: return@mapNotNull null
+                    grammarCache[lang] ?: loadGrammar(lang, dict).also { grammarCache[lang] = it }
+                },
+            )
             loadedLanguages = languages
             cache.keys.retainAll(languages.toSet())
             ngramCache.keys.retainAll(languages.toSet())
+            grammarCache.keys.retainAll(languages.toSet())
         }
     }
 
@@ -67,15 +82,48 @@ class Suggester(context: Context) {
         }.getOrNull()
     }
 
-    /** The dictionary plus the chat words people type but dictionaries lack ("vc", "lol"). */
+    /**
+     * The dictionary plus KeyHack's own lists: chat words ("vc", "lol"),
+     * current words it lacks ("WhatsApp", "selfie") and common misspellings
+     * corrected on space ("concerteza" -> "com certeza").
+     */
     private fun load(language: String): Dictionary? = readAsset("dict/$language.dict") { main ->
-        val chat = runCatching { app.assets.open("dict/$language.chat").bufferedReader() }.getOrNull()
-        chat?.use { Dictionary.read(language, main, it) } ?: Dictionary.read(language, main)
+        val extras = EXTRA_LISTS.mapNotNull { ext ->
+            runCatching { app.assets.open("dict/$language.$ext").bufferedReader() }.getOrNull()
+        }
+        try {
+            Dictionary.read(language, main, *extras.toTypedArray())
+        } finally {
+            extras.forEach { it.close() }
+        }
     }
 
     private fun loadNgrams(language: String): NgramModel? = readAsset(
         "ngram/$language.ngram",
     ) { NgramModel.read(it, language) }
+
+    private fun loadGrammar(language: String, dict: Dictionary): LanguageGrammar {
+        val lexicon = Lexicon { w -> dict.lookup(w).let { if (it < 0) -1 else dict.freqs[it] } }
+        val rules = runCatching { app.assets.open("grammar/$language.rules").bufferedReader() }.getOrNull()
+        return LanguageGrammar.create(language, lexicon, rules)
+    }
+
+    /**
+     * Checks the end of [textBeforeCursor] (just after a word was finished)
+     * for a grammar or agreement mistake. Latest request wins.
+     */
+    fun checkGrammar(textBeforeCursor: String, callback: (GrammarFix?) -> Unit) {
+        val gen = ++grammarGeneration
+        worker.post {
+            if (gen != grammarGeneration) return@post
+            val fix = runCatching { grammar.check(textBeforeCursor) }.getOrNull()
+            main.post { if (gen == grammarGeneration) callback(fix) }
+        }
+    }
+
+    fun cancelGrammar() {
+        grammarGeneration++
+    }
 
     fun setKeyCenters(centers: Map<Char, Pair<Float, Float>>) {
         worker.post { engine.costs = EditCosts(centers) }
@@ -165,5 +213,6 @@ class Suggester(context: Context) {
         const val BUFFER = 64 * 1024
         const val SYNC_TIMEOUT_MS = 120L
         const val SAVE_EVERY = 20
+        val EXTRA_LISTS = listOf("chat", "extra", "fixes")
     }
 }
