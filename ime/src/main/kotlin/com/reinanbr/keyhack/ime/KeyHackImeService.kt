@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.net.Uri
@@ -261,6 +262,31 @@ class KeyHackImeService :
 
     override fun onEvaluateFullscreenMode(): Boolean = false
 
+    override fun updateFullscreenMode() {
+        super.updateFullscreenMode()
+        // The framework sets the window back to wrap its content here.
+        applyWindowHeight()
+    }
+
+    /**
+     * Floating, the keyboard window covers the whole screen, transparent and
+     * touchable only on the keys (onComputeInsets), so the keys can sit
+     * anywhere and the app shows around them. Docked, it wraps the keys.
+     * Both the window and the framework's input area wrap their content by
+     * default; a full-height input view alone does not make them grow.
+     */
+    private fun applyWindowHeight() {
+        val w = window?.window ?: return
+        val h = if (settings.floating) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+        if (w.attributes.height != h) w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, h)
+        val area = w.findViewById<View>(android.R.id.inputArea) ?: return
+        val lp = area.layoutParams ?: return
+        if (lp.height != h) {
+            lp.height = h
+            area.layoutParams = lp
+        }
+    }
+
     // ---------------------------------------------------------------- views
 
     override fun onCreateInputView(): View {
@@ -401,7 +427,8 @@ class KeyHackImeService :
         toolsPanel?.applyColors(colors)
         clipboardPanel?.applyColors(colors)
         clipboard.expiryMs = settings.clipboardExpiryHours * ClipboardHistory.HOUR_MS
-        root?.setBackgroundColor(colors.background)
+        // Floating, only the rounded key column is painted (see applyFloating).
+        root?.setBackgroundColor(if (settings.floating) Color.TRANSPARENT else colors.background)
         suggester.setLanguages(languages())
     }
 
@@ -1642,6 +1669,8 @@ class KeyHackImeService :
         val r = root ?: return
         val col = keyColumn ?: return
         val on = settings.floating
+        applyWindowHeight()
+        r.setBackgroundColor(if (on) Color.TRANSPARENT else colors.background)
         r.layoutParams?.let { lp ->
             val h = if (on) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
             if (lp.height != h) {
