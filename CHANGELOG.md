@@ -102,6 +102,10 @@ All notable changes to KeyHack are listed here. The format follows
 - Kaomoji: over 200 text faces (from 44), in nine moods with their own
   tabs under ツ: happy, love, sad, angry, surprised, animals, actions and
   table flips, dancing, and shrugs.
+- Unicode 18 emoji: the bundled Noto Color Emoji font is now 2.057, which
+  adds 🫫 cracking face, 🫹 🫺 thumb signs, 🫌 monarch butterfly, 🫝 pickle,
+  🛙 lighthouse, 🪋 meteor, 🪌 eraser and 🪍 net. People whose phone or app
+  does not have Unicode 18 yet may see a box instead.
 
 - The HTTP client moved to its own module, `:net`, which only the online
   build includes; `:media` no longer has network code.

@@ -8,14 +8,15 @@ import android.graphics.fonts.FontFamily
 import android.os.Build
 
 /**
- * The bundled Noto Color Emoji font (Unicode 17.0, the version WhatsApp
- * supports), so every phone shows the same, current emoji. It is a COLRv1
+ * The bundled Noto Color Emoji font (2.057, Unicode 18.0), so every phone
+ * shows the same, current emoji. It is a COLRv1
  * font, which Android draws from 13 (API 33); older versions keep the system
  * emoji font. (Android 12 loads it and reports its glyphs but draws
  * nothing.) Characters the font lacks fall back to the system font.
  *
- * The font is also the version cap: [canDraw] hides emoji it cannot draw, so
- * nothing newer than what WhatsApp shows is offered.
+ * The font is also the version cap: [canDraw] hides emoji it cannot draw.
+ * Unicode 18 emoji (🫫, 🫝, 🛙...) show on phones whose own font has them,
+ * so a recipient with an older phone or app may see a box instead.
  */
 object EmojiFont {
     private const val PATH = "fonts/NotoColorEmoji.ttf"

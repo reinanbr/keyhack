@@ -164,7 +164,7 @@ class EmojiPanel(context: Context, private val store: EmojiStore) : LinearLayout
         }
     }
 
-    /** Hides emoji the emoji font cannot draw (newer than Unicode 17, or than this Android version). */
+    /** Hides emoji the emoji font cannot draw (newer than Unicode 18, or than this Android version). */
     private fun renders(e: Emoji): Boolean = EmojiFont.canDraw(context, e.value)
 
     private fun setEntries(list: List<Pair<String, Emoji?>>, wide: Boolean) {
