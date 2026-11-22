@@ -76,6 +76,7 @@ install; use it only for testing.
   one-tap paste of what you just copied.
 - **Snippets** (encrypted saved texts with typed shortcuts) and a **command
   palette** that finds any panel, toggle or tool by name.
+- **Glide typing**, decoded on the phone against the same dictionaries.
 - **Ergonomics:** slide Delete to delete whole words (with undo), held Delete
   speeds up to words, space-bar cursor slide, adjustable vibration.
 - **Dev tools:** case conversions (camelCase, snake_case…), Base64, URL and
@@ -201,7 +202,7 @@ the diff:
 | M5 | Stickers: import ✅, emoji stickers ✅, GIF→animated WebP ✅, commitContent to WhatsApp ✅; WhatsApp sticker packs | partial |
 | M6 | GIF search (Giphy, BYOK; Tenor's API closed 2026-06-30), commitContent | ✅ |
 | M7 | Dev tools: trackpad ✅, transforms ✅, snippets ✅, command palette ✅ | ✅ |
-| M8 | Glide typing | |
+| M8 | Glide typing (on-device, SHARK²-style decoder) | ✅ |
 | M9 | Floating mode (one-handed ✅), theme editor, backup export, `offline` flavor without network, F-Droid | |
 
 ## Contributing and security

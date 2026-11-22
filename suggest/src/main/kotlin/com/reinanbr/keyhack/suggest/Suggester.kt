@@ -126,7 +126,20 @@ class Suggester(context: Context) {
     }
 
     fun setKeyCenters(centers: Map<Char, Pair<Float, Float>>) {
-        worker.post { engine.costs = EditCosts(centers) }
+        worker.post {
+            engine.costs = EditCosts(centers)
+            engine.glideDecoder.centers = centers
+        }
+    }
+
+    /** Words for a glide over the letters, best first; latest request wins. */
+    fun glide(path: GlidePath, previous: String?, before: String?, callback: (List<Candidate>) -> Unit) {
+        val gen = ++generation
+        worker.post {
+            if (gen != generation) return@post
+            val result = runCatching { engine.glide(path, previous, before) }.getOrDefault(emptyList())
+            main.post { if (gen == generation) callback(result) }
+        }
     }
 
     fun suggest(typed: String, previous: String?, before: String?, callback: (Suggestions) -> Unit) {

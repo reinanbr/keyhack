@@ -88,6 +88,42 @@ class SuggestionEngine(
         return Suggestions(typedRaw, typedIsWord, list, auto)
     }
 
+    internal val glideDecoder = GlideDecoder()
+
+    /**
+     * Words for a finger path drawn over the letters (glide typing), best
+     * first: how well each word's ideal path matches, plus its frequency,
+     * the context and the user's history, on the same scale as [suggest].
+     */
+    fun glide(path: GlidePath, previous: String?, before: String? = null, limit: Int = GLIDE_LIMIT): List<Candidate> {
+        val p = glideDecoder.prepare(path) ?: return emptyList()
+        val found = HashMap<String, Candidate>()
+
+        fun offer(word: String, score: Float) {
+            val k = Dictionary.key(word)
+            val old = found[k]
+            if (old == null || score > old.score) found[k] = Candidate(word, score, Candidate.Kind.CORRECTION)
+        }
+
+        for ((i, dict) in dictionaries.withIndex()) {
+            val primaryBonus = if (i == 0) PRIMARY_BONUS else 0f
+            glideDecoder.forEachCandidate(p, dict) { w, cost ->
+                val f = dict.freqs[w]
+                if (f <= 0) return@forEachCandidate
+                val word = dict.words[w]
+                val used = history.count(word).coerceAtMost(GLIDE_HISTORY_CAP) * GLIDE_HISTORY_STEP
+                offer(word, f + primaryBonus + used + contextBonus(before, previous, word) - cost * GLIDE_COST_WEIGHT)
+            }
+        }
+        for ((word, count) in history.entries()) {
+            if (count < UserHistory.VALID_COUNT && !history.isValid(word)) continue
+            val cost = glideDecoder.cost(p, word) ?: continue
+            val f = (USER_BASE + count * USER_STEP).coerceAtMost(Dictionary.MAX_FREQ.toFloat())
+            offer(displayForm(word), f + contextBonus(before, previous, word) - cost * GLIDE_COST_WEIGHT)
+        }
+        return found.values.sortedByDescending { it.score }.take(limit)
+    }
+
     private fun dictionaryScore(
         freq: Int,
         cost: Float,
@@ -284,6 +320,12 @@ class SuggestionEngine(
 
     companion object {
         const val DEFAULT_LIMIT = 3
+        const val GLIDE_LIMIT = 4
+
+        /** Score lost per key width of mean distance between the drawn and the ideal path. */
+        private const val GLIDE_COST_WEIGHT = 220f
+        private const val GLIDE_HISTORY_STEP = 4f
+        private const val GLIDE_HISTORY_CAP = 10
         private const val COMPLETIONS = 4
         private const val FUZZY_PREFIX_MIN = 4
         private const val COST_WEIGHT = 45f

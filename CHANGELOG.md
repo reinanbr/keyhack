@@ -47,6 +47,14 @@ All notable changes to KeyHack are listed here. The format follows
 - Command palette: 🔍 in the </> panel searches every panel, toggle, edit
   action, dev tool and snippet by name ("base64", "anônimo", "área");
   tap a result or press Enter to run the best one.
+- Glide typing: slide across the letters of a word without lifting the
+  finger. The word is matched on the phone against the dictionaries (the
+  path's shape against each word's path over the keys, with frequency and
+  the words before it), accents and apostrophes come out right ("voce" →
+  "você", "dont" → "don't"), words you have learned can be glided too, and
+  alternatives show in the suggestion bar. A space goes in before the next
+  glided word; one backspace removes a glided word. A short swipe up on a
+  key still types its corner symbol. On by default; can be turned off.
 - Vibration length setting (0–60 ms). 0 keeps the system's keyboard
   vibration, which some phones mute along with touch feedback.
 

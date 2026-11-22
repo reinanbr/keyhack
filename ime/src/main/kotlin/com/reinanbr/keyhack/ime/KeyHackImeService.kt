@@ -58,6 +58,7 @@ import com.reinanbr.keyhack.media.GifProvider
 import com.reinanbr.keyhack.media.GifRepository
 import com.reinanbr.keyhack.stickers.StickerStore
 import com.reinanbr.keyhack.suggest.Candidate
+import com.reinanbr.keyhack.suggest.GlidePath
 import com.reinanbr.keyhack.suggest.Suggester
 import com.reinanbr.keyhack.suggest.Suggestions
 import com.reinanbr.keyhack.suggest.grammar.GrammarFix
@@ -161,6 +162,12 @@ class KeyHackImeService :
     private var previousWordStale = true
     private var revert: Revert? = null
     private var autoSpace = false
+
+    /** The word being composed came from a glide: kept as is on space, deleted whole by backspace. */
+    private var glided = false
+
+    /** Bumped per glide, so a late result for an older glide is dropped. */
+    private var glideToken = 0
     private var lastSpaceAt = 0L
     private var hasSelection = false
     private var settingsChanged = true
@@ -516,6 +523,7 @@ class KeyHackImeService :
             kv.layout = layout
             if (layer == ALPHA && !pcMode) suggester.setKeyCenters(layout.letterCenters())
         }
+        kv.glideEnabled = glideAllowed()
         kv.activeLayer = layer
         kv.enterLabel = enterLabel()
         kv.spaceLabel = if (layer == ALPHA && !pcMode) {
@@ -682,6 +690,54 @@ class KeyHackImeService :
         showDefaultStrip()
     }
 
+    // ----------------------------------------------------------- glide typing
+
+    private fun glideAllowed() = settings.glide && layer == ALPHA && !pcMode && policy.suggestions && !policy.rawKeys
+
+    override fun onGlide(xs: FloatArray, ys: FloatArray, aspect: Float) {
+        val ic = currentInputConnection ?: return
+        if (!glideAllowed() || search != Search.NONE || modifiers.anyActive) return
+        // The word before goes first: a glided one as it is, a typed one as space would commit it.
+        if (composing.isNotEmpty()) commitComposing(autocorrect = !glided)
+        clearGrammarFix()
+        revert = null
+        undoDelete = null
+        val before = ic.getTextBeforeCursor(1, 0)?.toString().orEmpty()
+        val space = before.isNotEmpty() && (before[0].isLetterOrDigit() || before[0] in SPACE_AFTER)
+        if (space) ownEdit { ic.commitText(" ", 1) }
+        autoSpace = false
+        val token = ++glideToken
+        suggester.glide(GlidePath(xs, ys, aspect), previousWord(), beforeWord) { found ->
+            if (token == glideToken && composing.isEmpty()) showGlided(found, space)
+        }
+    }
+
+    private fun showGlided(found: List<Candidate>, addedSpace: Boolean) {
+        val ic = currentInputConnection ?: return
+        if (found.isEmpty()) {
+            // Nothing fits: take back the space added for the word.
+            if (addedSpace && ic.getTextBeforeCursor(1, 0)?.toString() == " ") ic.deleteSurroundingText(1, 0)
+            showMessage(getString(R.string.keyhack_glide_none))
+            return
+        }
+        val words = found.map { glideCase(it.word) }.distinct()
+        composing.append(words[0])
+        glided = true
+        ownEdit { ic.setComposingText(composing, 1) }
+        shift.onCharacterCommitted()
+        renderState()
+        suggestions = Suggestions(words[0], true, words.map { Candidate(it, 0f, Candidate.Kind.CORRECTION) }, null)
+        stripShowsToolbar = false
+        renderStrip()
+    }
+
+    /** Shift capitalizes a glided word, caps lock uppercases it; otherwise the dictionary's form ("I", "Brasil"). */
+    private fun glideCase(word: String): String = when {
+        shift.state == ShiftState.LOCKED -> word.uppercase(Locale.getDefault())
+        shift.isShifted -> word.replaceFirstChar { it.titlecase(Locale.getDefault()) }
+        else -> word
+    }
+
     override fun onCursorSwipe(steps: Int) {
         val ic = currentInputConnection ?: return
         commitComposing(autocorrect = false)
@@ -734,6 +790,7 @@ class KeyHackImeService :
                 clearGrammarFix()
             }
             composing.append(text)
+            glided = false
             ownEdit { ic.setComposingText(composing, 1) }
             shift.onCharacterCommitted()
             requestSuggestions()
@@ -824,6 +881,14 @@ class KeyHackImeService :
             }
         }
         when {
+            glided && composing.isNotEmpty() -> {
+                // A glided word goes in one backspace, as it came.
+                resetComposing(finish = false)
+                ownEdit { ic.setComposingText("", 1) }
+                updateAutoCaps()
+                showDefaultStrip()
+            }
+
             composing.isNotEmpty() -> {
                 val end = composing.length
                 composing.delete(composing.offsetByCodePoints(end, -1), end)
@@ -949,6 +1014,7 @@ class KeyHackImeService :
     private fun resetComposing(finish: Boolean) {
         val had = composing.isNotEmpty()
         composing.setLength(0)
+        glided = false
         suggestions = Suggestions.EMPTY
         suggester.cancel()
         if (finish && had) ownEdit { currentInputConnection?.finishComposingText() }
@@ -2061,6 +2127,9 @@ class KeyHackImeService :
         const val EXTRA_IMPORT_STICKERS = "com.reinanbr.keyhack.IMPORT_STICKERS"
         const val EXTRA_EDIT_SNIPPETS = "com.reinanbr.keyhack.EDIT_SNIPPETS"
         private const val SNIPPET_CHIP_WEIGHT = 2f
+
+        /** After these, a glided word gets a space before it. */
+        private val SPACE_AFTER = setOf('.', ',', '!', '?', ';', ':')
         private const val PALETTE_RESULTS = 4
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64

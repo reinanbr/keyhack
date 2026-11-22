@@ -459,6 +459,11 @@ private fun TypingSection(p: Prefs, onClearLearning: () -> Unit) {
             p.bool(K.GRAMMAR, true),
         ) { p.set { putBoolean(K.GRAMMAR, it) } }
         SwitchRow(
+            stringResource(R.string.pref_glide),
+            stringResource(R.string.pref_glide_summary),
+            p.bool(K.GLIDE, true),
+        ) { p.set { putBoolean(K.GLIDE, it) } }
+        SwitchRow(
             stringResource(R.string.pref_auto_caps),
             null,
             p.bool(K.AUTO_CAPS, true),

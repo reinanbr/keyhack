@@ -36,7 +36,8 @@ import kotlin.math.abs
  * Gestures: tap; hold for long-press alternatives (slide to pick, release to
  * commit); hold Delete or an arrow to repeat; slide on the space bar to move
  * the cursor; slide Delete to the left to select whole words, released to
- * delete them. A second finger landing commits the first key (rollover).
+ * delete them; with [glideEnabled], slide across the letters to type a word
+ * (glide typing). A second finger landing commits the first key (rollover).
  *
  * onDraw allocates nothing; geometry is rebuilt only on size/layout changes.
  */
@@ -63,6 +64,13 @@ class KeyboardView(context: Context) : View(context) {
 
         /** The finger dragging Delete lifted: delete what [onDeleteSwipe] selected. */
         fun onDeleteSwipeEnd() = Unit
+
+        /**
+         * A glide over the letters ended. The path is in key units (x in key
+         * widths, y in rows, like [KeyboardLayout.letterCenters]); [aspect] is
+         * a row's height over a key's width.
+         */
+        fun onGlide(xs: FloatArray, ys: FloatArray, aspect: Float) = Unit
     }
 
     var listener: Listener? = null
@@ -153,6 +161,14 @@ class KeyboardView(context: Context) : View(context) {
 
     var hapticsEnabled: Boolean = true
 
+    /** Glide typing: sliding across the letters types a word (the IME decodes it). */
+    var glideEnabled: Boolean
+        get() = glide.enabled
+        set(value) {
+            glide.enabled = value
+            if (!value) cancelGlide()
+        }
+
     /** Key-press vibration length in ms; 0 uses the system's keyboard haptic (which follows its touch setting). */
     var vibrationMs: Int = 0
     var soundEnabled: Boolean = false
@@ -170,6 +186,8 @@ class KeyboardView(context: Context) : View(context) {
     private val swipeSlopPx = SWIPE_SLOP_DP * density
     private val flickSlopPx = FLICK_SLOP_DP * density
     private val deleteStepPx = DELETE_STEP_DP * density
+
+    private val glide = GlideInput(density, verticalPaddingPx)
     private val vibrator: Vibrator? = context.getSystemService(Vibrator::class.java)
 
     private fun sp(value: Float): Float =
@@ -332,6 +350,7 @@ class KeyboardView(context: Context) : View(context) {
             paint.color = fg
             drawCentered(canvas, text, paint)
         }
+        glide.draw(canvas, colors.accent)
     }
 
     /** The key's rounded rectangle (and its shadow, if the shape has one); leaves its bounds in [rect]. */
@@ -407,7 +426,8 @@ class KeyboardView(context: Context) : View(context) {
             else -> placed.key.displayLabel(shifted)
         }
 
-    private fun isPressed(index: Int): Boolean = pointers.any { it.key == index && !it.trackpad }
+    private fun isPressed(index: Int): Boolean =
+        pointers.withIndex().any { (id, p) -> p.key == index && !p.trackpad && !(id == glide.pointer && glide.gliding) }
 
     private fun flickedHint(index: Int): String? =
         if (pointers.any { it.key == index && it.flick }) geometry?.keys?.getOrNull(index)?.key?.hint else null
@@ -435,7 +455,11 @@ class KeyboardView(context: Context) : View(context) {
                 p.downX = event.getX(index)
                 p.downY = event.getY(index)
                 p.lastStepX = p.downX
-                if (key != NO_KEY) onKeyDown(id, key)
+                if (key != NO_KEY) {
+                    val othersDown = pointers.withIndex().any { (other, q) -> other != id && q.key != NO_KEY }
+                    glide.start(g, id, key, p.downX, p.downY, othersDown)
+                    onKeyDown(id, key)
+                }
             }
 
             MotionEvent.ACTION_MOVE ->
@@ -458,6 +482,7 @@ class KeyboardView(context: Context) : View(context) {
     /** A new finger landed: commit keys still held by other fingers now, in order. */
     private fun rollover(except: Int) {
         val g = geometry ?: return
+        endGlideFor(except)
         for (id in pointers.indices) {
             val p = pointers[id]
             if (id == except || p.key == NO_KEY || p.consumed || p.popup || p.trackpad) continue
@@ -536,6 +561,7 @@ class KeyboardView(context: Context) : View(context) {
             popup.track(x + ox, y + oy)
             return
         }
+        if (pointerId == glide.pointer && trackGlide(g, p, x, y)) return
         val key = g.keys[p.key].key
         if (key.action == KeyAction.Delete) {
             trackDeleteSwipe(p, x)
@@ -571,6 +597,44 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+    /** A finger landing during a glide ends it, as if lifted. */
+    private fun endGlideFor(newPointer: Int) {
+        val gp = glide.pointer
+        if (gp < 0 || gp == newPointer) return
+        if (glide.gliding) {
+            finishGlide()
+            pointers[gp].consumed = true
+        } else {
+            cancelGlide()
+        }
+    }
+
+    /** Feeds the glide; true while it is one, so the move does nothing else. */
+    private fun trackGlide(g: KeyGeometry, p: Pointer, x: Float, y: Float): Boolean {
+        if (p.consumed || p.popup) {
+            cancelGlide()
+            return false
+        }
+        val state = glide.track(g, x, y)
+        if (state == GlideInput.BECAME) {
+            p.flick = false
+            if (longPressPointer == glide.pointer) cancelKeyLongPress()
+            if (previewPointer == glide.pointer) hidePreview()
+        }
+        if (state != GlideInput.NOT_GLIDING) invalidate()
+        return state != GlideInput.NOT_GLIDING
+    }
+
+    private fun finishGlide() {
+        val g = geometry ?: return
+        glide.finish(g) { xs, ys, aspect -> listener?.onGlide(xs, ys, aspect) }
+        invalidate()
+    }
+
+    private fun cancelGlide() {
+        if (glide.cancel()) invalidate()
+    }
+
     /** Delete dragged left selects words, one more per [deleteStepPx]; dragging back unselects. */
     private fun trackDeleteSwipe(p: Pointer, x: Float) {
         val dx = p.downX - x
@@ -596,7 +660,13 @@ class KeyboardView(context: Context) : View(context) {
         if (shiftPointer == pointerId) releaseShift()
         if (previewPointer == pointerId) hidePreview()
         val key = g.keys[index].key
+        val glided = pointerId == glide.pointer && !p.consumed && !p.popup && glide.endsAsGlide(g)
+        if (pointerId == glide.pointer) {
+            if (glided) finishGlide() else cancelGlide()
+        }
         when {
+            glided -> Unit
+
             p.deleteSwipe -> listener?.onDeleteSwipeEnd()
 
             p.popup -> {
@@ -701,6 +771,7 @@ class KeyboardView(context: Context) : View(context) {
 
     fun cancelAllPresses() {
         if (shiftPointer >= 0) releaseShift()
+        cancelGlide()
         // A cancelled drag deletes nothing.
         if (pointers.any { it.deleteSwipe }) {
             listener?.onDeleteSwipe(0)

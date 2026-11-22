@@ -65,4 +65,5 @@
   <string name="keyhack_cmd_settings">Settings</string>
   <string name="keyhack_cmd_switch">Switch keyboard</string>
   <string name="keyhack_cmd_hide">Hide keyboard</string>
+  <string name="keyhack_glide_none">No word for that glide</string>
 </resources>
