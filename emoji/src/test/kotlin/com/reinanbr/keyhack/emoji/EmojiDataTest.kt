@@ -49,4 +49,38 @@ class EmojiDataTest {
         assertTrue(data.forWord("a").isEmpty(), "too short")
         assertTrue(data.forWord("xyzzy").isEmpty())
     }
+
+    @Test
+    fun chatWordsComeFirstWithThreeEmoji() {
+        fun all(w: String) = data.forWord(w).map { it.value }
+        assertEquals(listOf("❤️", "😍", "🥰"), all("amor"))
+        assertEquals(listOf("😂", "🤣", "😆"), all("kkkkkkk"))
+        assertEquals(listOf("😂", "🤣", "😆"), all("KKKK"))
+        assertEquals(listOf("😂", "🤣", "😆"), all("hahahah"))
+        assertEquals("😅", all("rsrsrs").first())
+        assertEquals("🎉", all("Parabéns").first())
+        assertEquals("😊", all("bom").first(), "not a superhero")
+        assertEquals("😋", all("fome").first(), "not a pineapple")
+        assertTrue("🍕" in data.forWord("pizza", 6).map { it.value }, "Unicode keywords still count")
+        assertTrue(all("aaaa").isEmpty(), "a scream is not a laugh")
+        assertTrue(all("ah").isEmpty())
+    }
+
+    @Test
+    fun functionWordsGetNoEmoji() {
+        for (w in listOf("de", "isso", "no", "na", "para", "mais", "voce", "você", "this", "that", "aqui")) {
+            assertTrue(data.forWord(w).isEmpty(), w)
+        }
+    }
+
+    @Test
+    fun everyChatEmojiIsInTheTable() {
+        for ((word, emoji) in ChatEmoji.all) {
+            assertEquals(word, EmojiData.normalize(word), "keys are normalized")
+            for (e in emoji.split(' ')) {
+                val hex = e.codePoints().toArray().joinToString(" ") { Integer.toHexString(it) }
+                assertTrue(data.find(e) != null, "$word: $e ($hex)")
+            }
+        }
+    }
 }

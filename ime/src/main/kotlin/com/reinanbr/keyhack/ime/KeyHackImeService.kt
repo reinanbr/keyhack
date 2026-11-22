@@ -1342,27 +1342,37 @@ class KeyHackImeService :
             )
         }
         for (w in words) items += StripView.Item("w:" + w.word, w.label, weight = 1.5f, bold = w.bold)
-        emojiForComposing()?.let { items += StripView.Item("x:$it", it, weight = EMOJI_SLOT_WEIGHT, emoji = true) }
+        // Emoji for the word being typed, or after a space for the word just finished.
+        val emojiWord = if (composing.isNotEmpty()) composing.toString() else previousWord()
+        val emojiLimit = if (composing.isNotEmpty()) EMOJI_WHILE_TYPING else EMOJI_AFTER_WORD
+        for (e in emojiFor(emojiWord, emojiLimit)) {
+            items += StripView.Item("x:$e", e, weight = EMOJI_SLOT_WEIGHT, emoji = true)
+        }
         s.show(items, withDividers = true)
     }
 
-    /** An emoji for the word being typed ("amor" -> ❤️), preferring ones the user sends often. */
-    private fun emojiForComposing(): String? {
-        if (composing.isEmpty() || !policy.suggestions) return null
-        val found = emojiData?.forWord(composing.toString()).orEmpty().filter { EmojiFont.canDraw(this, it.value) }
-        if (found.isEmpty()) return null
+    /**
+     * Up to [limit] emoji for [word] ("amor" -> ❤️ 😍 🥰), the ones the user
+     * sends often first, in the user's skin tone.
+     */
+    private fun emojiFor(word: String?, limit: Int): List<String> {
+        if (word.isNullOrEmpty() || !policy.suggestions) return emptyList()
+        val found =
+            emojiData?.forWord(word, EMOJI_CANDIDATES).orEmpty().filter { EmojiFont.canDraw(this, it.value) }
+        if (found.isEmpty()) return emptyList()
         val recents = emojiStore.recents()
         val toned = found.map { it.withTone(emojiStore.tone(it.value)) }
-        return toned.minByOrNull { e -> recents.indexOf(e).let { if (it < 0) Int.MAX_VALUE else it } }
+        // Stable: emoji never sent keep the chat list's order.
+        return toned.sortedBy { e -> recents.indexOf(e).let { if (it < 0) Int.MAX_VALUE else it } }.take(limit)
     }
 
-    /** Keeps the typed word and adds the emoji after it: "amor ❤️ ". */
+    /** Keeps the typed word and adds the emoji after it: "amor ❤️ "; after a space, just the emoji. */
     private fun pickEmojiSuggestion(emoji: String) {
         val ic = currentInputConnection ?: return
         val word = composing.toString()
         val prev = previousWord()
         resetComposing(finish = false)
-        ownEdit { ic.commitText("$word $emoji ", 1) }
+        ownEdit { ic.commitText(if (word.isEmpty()) "$emoji " else "$word $emoji ", 1) }
         if (policy.learning && word.isNotEmpty()) suggester.learn(word, prev)
         emojiStore.addRecent(emoji)
         forgetWords()
@@ -2412,7 +2422,14 @@ class KeyHackImeService :
         private const val PALETTE_RESULTS = 4
         private const val GRAPHEME_LOOKBACK = 16
         private const val PREVIOUS_LOOKBACK = 64
-        private const val EMOJI_SLOT_WEIGHT = 0.8f
+        private const val EMOJI_SLOT_WEIGHT = 0.65f
+
+        /** Emoji in the bar: up to three for the word being typed, two after it (the next words need room). */
+        private const val EMOJI_WHILE_TYPING = 3
+        private const val EMOJI_AFTER_WORD = 2
+
+        /** Emoji looked at before preferring the user's recents. */
+        private const val EMOJI_CANDIDATES = 6
         private const val ONE_HAND_FRACTION = 0.82f
         private const val FRESH_CLIP_MS = 2 * 60 * 1000L
         private const val GRAMMAR_LOOKBACK = 200

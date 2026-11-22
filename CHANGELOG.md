@@ -93,6 +93,13 @@ All notable changes to KeyHack are listed here. The format follows
 
 ### Changed
 
+- More emoji in the suggestion bar: up to three for the word you are typing
+  ("amor" → ❤️ 😍 🥰, "kkkk" → 😂 🤣 😆), and two more after you finish it
+  (tap one to add it after the space). A chat word list (Brazilian slang
+  such as vlw, tmj, blz, niver; laughs like kkkk, hahaha, rsrs) picks
+  them before the Unicode keywords, and short words like "de" or "isso" no
+  longer bring up unrelated emoji.
+
 - The HTTP client moved to its own module, `:net`, which only the online
   build includes; `:media` no longer has network code.
 - ⌫ deletes when released (or when held), not when touched, so a slide

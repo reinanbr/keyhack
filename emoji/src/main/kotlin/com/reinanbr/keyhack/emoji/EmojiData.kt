@@ -55,21 +55,21 @@ class EmojiData(val all: List<Emoji>) {
         // specific emoji (fewer keywords) wins, then table order.
         val order = compareBy<Map.Entry<Emoji, Int>>({ it.value }, { it.key.keywords.size })
         for ((k, ranks) in map) sorted[k] = ranks.entries.sortedWith(order).map { it.key }.toMutableList()
-        for ((alias, value) in CHAT_ALIASES) {
-            val e = byValue[value] ?: continue
-            sorted.getOrPut(alias) { ArrayList() }.add(0, e)
-        }
         sorted
     }
 
     /**
      * Emoji to offer next to a typed word, as WhatsApp-style chat keyboards do:
-     * those with [word] as a whole keyword in any language ("amor" -> ❤️,
-     * "kkk" -> 😂, "pizza" -> 🍕), in table order.
+     * first the chat list's picks ("amor" -> ❤️ 😍 🥰, "kkkk" -> 😂 🤣 😆),
+     * then emoji with [word] as a whole Unicode keyword in any language
+     * ("pizza" -> 🍕). Function words ("de", "isso") get none.
      */
     fun forWord(word: String, limit: Int = WORD_LIMIT): List<Emoji> {
         if (word.length < MIN_WORD) return emptyList()
-        return byKeyword[normalize(word)].orEmpty().take(limit)
+        val key = ChatEmoji.key(normalize(word))
+        val chat = ChatEmoji.forKey(key).mapNotNull { byValue[it] }
+        val table = if (key in ChatEmoji.NONE) emptyList() else byKeyword[key].orEmpty()
+        return (chat + table).distinct().take(limit)
     }
 
     /**
@@ -115,17 +115,8 @@ class EmojiData(val all: List<Emoji>) {
         private const val PREFIX = 4
         private const val WORD = 2
         private const val NAME_SLOTS = 1
-        private const val WORD_LIMIT = 3
+        const val WORD_LIMIT = 3
         private const val MIN_WORD = 2
-
-        /** Chat spellings the Unicode keywords lack. */
-        private val CHAT_ALIASES =
-            listOf(
-                "kkk" to "😂", "kkkk" to "😂", "kkkkk" to "😂", "haha" to "😂", "rs" to "😂", "rsrs" to "😂",
-                "lmao" to "😂",
-                "obg" to "🙏", "obrigado" to "🙏", "obrigada" to "🙏", "thanks" to "🙏", "vlw" to "👍",
-                "blz" to "👍", "parabens" to "🎉", "congrats" to "🎉", "bjs" to "😘", "beijos" to "😘",
-            )
 
         fun read(reader: BufferedReader): EmojiData {
             val list = ArrayList<Emoji>(INITIAL)
@@ -141,7 +132,7 @@ class EmojiData(val all: List<Emoji>) {
         private const val INITIAL = 2048
         private const val KEYWORD_COLUMN = 4
 
-        private fun normalize(s: String): String = java.text.Normalizer
+        internal fun normalize(s: String): String = java.text.Normalizer
             .normalize(s.lowercase(), java.text.Normalizer.Form.NFD)
             .replace(Regex("\\p{Mn}+"), "")
             .trim()
