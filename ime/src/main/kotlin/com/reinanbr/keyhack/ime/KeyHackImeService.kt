@@ -1460,6 +1460,10 @@ class KeyHackImeService :
             id == "float" -> toggleFloating()
 
             id == "incognito" -> {
+                // configure() forgets the word being typed; finish it in the editor first, under the
+                // old policy (a word typed in incognito is still not learned), or the next paste or
+                // pick would replace it.
+                commitComposing(autocorrect = false)
                 incognito = !incognito
                 currentInputEditorInfo?.let { configure(it, true) }
                 showMessage(
