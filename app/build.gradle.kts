@@ -9,8 +9,8 @@ android {
 
     defaultConfig {
         applicationId = "com.reinanbr.keyhack"
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     // "online" has GIF search, the only network use (ADR 0004); "offline"

@@ -1,0 +1,1 @@
+• Grammar check now fixes agreement in the Portuguese subjunctive: "eles não me envie" → "enviem", "se nós soubesse" → "soubéssemos"

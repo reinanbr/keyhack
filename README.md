@@ -12,7 +12,7 @@ Every keyboard can read everything you type, so KeyHack is built to be
 learning that stores word counts only, and a single, auditable network use
 (GIF search).
 
-> **Status: 0.3.0, public preview.** See the [changelog](CHANGELOG.md)
+> **Status: 0.4.0, public preview.** See the [changelog](CHANGELOG.md)
 > and the [roadmap](#roadmap).
 
 <p>
@@ -185,7 +185,7 @@ secrets). Keys never live in the repository.
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
 2. Move the `Unreleased` notes in [CHANGELOG.md](CHANGELOG.md) to a new
    version section.
-3. Commit, tag and push: `git tag -a v0.3.0 -m "KeyHack 0.3.0" && git push origin main v0.3.0`.
+3. Commit, tag and push: `git tag -a v0.4.0 -m "KeyHack 0.4.0" && git push origin main v0.4.0`.
 
 The [release workflow](.github/workflows/release.yml) checks that the tag
 matches `versionName`, runs every check, signs the APK with the key from the
